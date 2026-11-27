@@ -238,6 +238,7 @@ let HIST, ST = [], START, ND = 0, TS;                 // station list, history s
 let dayZ, dayG, dayN, dayShare;                       // per-day 0 °C height, cooling rate, station count, share of ice below
 let D, N, wx, wy, cz, cg, Zc, glaciers, total, cdf, offset = 0;
 let li0, lfx, lfy, rowY, rowStart, gx;
+let daySrc = null, dayActive = 0, modelsBusy = false;
 let sel = { kind: "now" }, active = 0, sources = [], info = [], obsNow = null, liveOk = false, showStations = false;
 let colors = {}, packed = {};
 const view = { s: 1, ox: 0, oy: 0 };
@@ -329,7 +330,7 @@ function buildStationSource() {
   sources[0] = { id: "stations", name: "MeteoSwiss stations", field: lattice(Zsite, sites), g, rmse: sig, bias: 0, mo };
 }
 async function loadModels() {
-  const btn = $("loadmodels"); btn.disabled = true; btn.textContent = "Loading models…";
+  modelsBusy = true; renderSources();
   const g = sources[0].g, hr = new Date(obsNow.time).getUTCHours(), day = new Date(obsNow.time).toISOString().slice(0, 10);
   const idx = ST.map((s, i) => i).filter(i => !Number.isNaN(obsNow.t[i]));
   const lat = idx.map(i => ST[i].la).join(","), lon = idx.map(i => ST[i].lo).join(",");
@@ -354,7 +355,34 @@ async function loadModels() {
     } catch (e) { console.warn(id, e); }
     await new Promise(r => setTimeout(r, 600));
   }
-  btn.hidden = true; computeInfo(); renderSources();
+  modelsBusy = false; computeInfo(); renderSources();
+}
+
+async function fetchJSON(url) {
+  for (let tries = 0; tries < 3; tries++) { const r = await fetch(url); if (r.status === 429) { await new Promise(r => setTimeout(r, 4000)); continue; } if (!r.ok) return null; return r.json(); }
+  return null;
+}
+async function loadDayModels() {
+  const ds = daySrc, k = ds.k, g = dayG[k], day = dayDate(k).toISOString().slice(0, 10);
+  modelsBusy = true; renderSources();
+  const idx = ST.map((s, i) => i).filter(i => !Number.isNaN(TS[i * ND + k]));
+  const q = `latitude=${idx.map(i => ST[i].la).join(",")}&longitude=${idx.map(i => ST[i].lo).join(",")}&start_date=${day}&end_date=${day}&hourly=temperature_2m&timezone=UTC`;
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const jobs = [["ERA5 reanalysis (ECMWF, 25 km)", `https://archive-api.open-meteo.com/v1/archive?${q}&models=era5`],
+    ...MODELS.concat([["ecmwf_ifs", "ECMWF IFS (9 km)"]]).map(([id, name]) => [name, `https://historical-forecast-api.open-meteo.com/v1/forecast?${q}&models=${id}`])];
+  for (const [name, url] of jobs) {
+    let ok = false;
+    try {
+      let d = await fetchJSON(url); if (d) {
+        d = Array.isArray(d) ? d : [d]; const Zm = [], err = [];
+        idx.forEach((i, a) => { const h = (d[a].hourly.temperature_2m || []).filter(v => v != null); if (h.length < 20) return; const zi = d[a].elevation + mean(h) / g; Zm.push(zi); err.push(-g * (ST[i].z - zi) - TS[i * ND + k]); });
+        if (Zm.length >= 8) { ds.list.push({ name, z: mean(Zm), g, bias: mean(err), rmse: Math.sqrt(mean(err.map(e => e * e))) }); ok = true; }
+      }
+    } catch (e) { console.warn(name, e); }
+    if (!ok) ds.missing.push(name.replace(/ \(.*\)/, ""));
+    await new Promise(r => setTimeout(r, 500));
+  }
+  ds.loaded = true; modelsBusy = false; if (daySrc === ds) renderSources();
 }
 
 /* ---------- glacier cells ---------- */
@@ -388,7 +416,7 @@ function share(f, off) { let m = 0; for (let i = 0; i < N; i++) if (cz[i] < line
 
 /* ---------- selection -> map field -> numbers ---------- */
 function applySelection() {
-  if (sel.kind === "day") Zc.fill(dayZ[sel.k]); else { const f = sources[active].field; for (let i = 0; i < N; i++) Zc[i] = lineAt(f, i); }
+  if (sel.kind === "day") Zc.fill(daySrc.list[dayActive].z); else { const f = sources[active].field; for (let i = 0; i < N; i++) Zc[i] = lineAt(f, i); }
   recount(); renderAll(); schedule();
 }
 function current() {   // everything the banner needs for the chosen state
@@ -456,7 +484,22 @@ function computeInfo() { info = sources.map(S => { let sum = 0; for (let i = 0; 
 function renderSources() {
   const day = sel.kind === "day"; $("srcpanel").hidden = false;
   const ul = $("srcs"); ul.textContent = "";
-  if (day) { $("srchint").textContent = `Past days use the station line only: the average 0 °C height of ${dayN[sel.k]} stations on ${dayLabel(sel.k)}, cooling ${fmt(dayG[sel.k] * 1e5) / 100} °C per km.`; $("loadmodels").hidden = true; return; }
+  const lm = $("loadmodels");
+  if (day) {
+    lm.hidden = daySrc.loaded; lm.disabled = modelsBusy; lm.textContent = modelsBusy ? "Loading…" : "Compare with ERA5 and weather models";
+    daySrc.list.forEach((S, k) => {
+      const li = document.createElement("li"), b = document.createElement("button"); b.setAttribute("aria-pressed", k === dayActive);
+      b.innerHTML = `<span class="row"><span>${esc(S.name)}</span><span>${fmt(S.z + offset)} m</span></span><span class="row2">${pf(shareAt(S.z + offset))}% of ice below · ${k === 0 ? "typical miss" : "error vs stations"} ${S.rmse.toFixed(1)} K${Math.abs(S.bias) >= 0.1 ? `, bias ${S.bias > 0 ? "+" : "−"}${Math.abs(S.bias).toFixed(1)} K` : ""}</span>`;
+      b.addEventListener("click", () => { dayActive = k; applySelection(); });
+      li.append(b); ul.append(li);
+    });
+    $("srchint").textContent = dayActive === 0
+      ? `The average 0 °C height of ${dayN[sel.k]} stations on ${dayLabel(sel.k)}, cooling ${(dayG[sel.k] * 1000).toFixed(1)} °C per km.`
+      : `Model daily mean 2 m temperatures at the same station sites, same cooling rate. Error compares the model with the stations' measured daily means.`;
+    if (daySrc.loaded && daySrc.missing.length) $("srchint").textContent += ` No archived data for this date from: ${daySrc.missing.join(", ")}.`;
+    return;
+  }
+  lm.disabled = modelsBusy; lm.textContent = modelsBusy ? "Loading models…" : "Compare with eight weather models";
   $("loadmodels").hidden = sources.length > 1;
   if (!info.length) computeInfo();
   sources.forEach((S, k) => {
@@ -564,15 +607,19 @@ function drawCharts() {
 }
 
 /* ---------- selection controls ---------- */
-function selectDay(k) { sel = { kind: "day", k }; applySelection(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+function enterDay(k) {
+  sel = { kind: "day", k }; dayActive = 0;
+  daySrc = { k, loaded: false, missing: [], list: [{ name: "MeteoSwiss stations", z: dayZ[k], g: dayG[k], bias: 0, rmse: SIGMA_K[dayDate(k).getUTCMonth()] }] };
+}
+function selectDay(k) { enterDay(k); applySelection(); window.scrollTo({ top: 0, behavior: "smooth" }); }
 function selectNow() { sel = { kind: "now" }; applySelection(); }
 $("vnow").onclick = selectNow;
 $("vdate").addEventListener("change", e => {
   if (!e.target.value) return; const d = new Date(e.target.value + "T00:00:00Z"), k = dayIndex(d);
   if (k < 0 || k >= ND || Number.isNaN(dayZ[k])) { renderVerdict(current()); return; }
-  sel = { kind: "day", k }; applySelection();
+  enterDay(k); applySelection();
 });
-$("loadmodels").onclick = loadModels;
+$("loadmodels").onclick = () => sel.kind === "day" ? loadDayModels() : loadModels();
 $("stbtn").onclick = () => { showStations = !showStations; $("stbtn").setAttribute("aria-pressed", showStations); schedule(); };
 let tInfo = 0; const off = $("off");
 off.addEventListener("input", () => { offset = +off.value; $("offout").textContent = "+" + fmt(offset) + " m"; $("reset").disabled = offset === 0; recount(); renderAll(); schedule(); clearTimeout(tInfo); tInfo = setTimeout(() => { computeInfo(); renderSources(); }, 250); });
