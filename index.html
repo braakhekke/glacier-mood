@@ -315,7 +315,7 @@ const LAT0 = 45.7, LON0 = 6.7, STEP = 0.05, NLA = 29, NLO = 79, KH = 60;       /
 // typical miss of the station line (K), by month, from leaving each station out 1993-2025
 const SIGMA_K = [1.6, 1.6, 1.56, 1.56, 1.56, 1.0, 1.0, 1.0, 1.2, 1.2, 1.2, 1.6];
 const TIERS = [
-  { max: 1,   tag: "Good day",     col: "var(--ice)",  on: "var(--on-tier)", title: "A good day for the glaciers",     msg: (z, p, km) => `The freezing line is at ${fmt(z)} m, below almost none of the ice.` },
+  { max: 1,   tag: "Good day",     col: "var(--ice)",  on: "var(--on-tier)", title: "A good day for the glaciers",     msg: (z, p, km) => `The freezing line is at ${fmt(z)} m, below almost all of the ice.` },
   { max: 10,  tag: "Fair day",     col: "var(--pine)", on: "var(--on-red)",  title: "A fair day for the glaciers",     msg: (z, p, km) => `Freezing line at ${fmt(z)} m. Only the lowest tongues are thawing (${fmt(km)} km²).` },
   { max: 30,  tag: "Mixed day",    col: "var(--sun)",  on: "var(--on-tier)", title: "A mixed day for the glaciers",    msg: (z, p, km) => `Freezing line at ${fmt(z)} m. ${fmt(km)} km² of ice is thawing.` },
   { max: 60,  tag: "Bad day",      col: "var(--melt)", on: "var(--on-tier)", title: "A bad day for the glaciers",      msg: (z, p, km) => `Freezing line at ${fmt(z)} m. ${Math.round(p)}% of the ice (${fmt(km)} km²) is thawing.` },
