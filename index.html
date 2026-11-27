@@ -474,7 +474,8 @@ function recount() {
 function renderAll() {
   const c = current(), lo = shareAt(c.z - c.sig), hi = shareAt(c.z + c.sig);
   $("pct").textContent = pf(c.p);
-  $("lead").innerHTML = `<b>${fmt(c.km)}</b> of ${fmt(total)} km² · likely ${hi < 0.0005 ? "none" : lo > 0.9995 ? "all" : `${pf(lo)}–${pf(hi)}%`}`;
+  const likely = hi < 0.0005 || lo > 0.9995 ? "" : ` · likely ${pf(lo)}–${pf(hi)}%`;   // a range only when there is something to say
+  $("lead").innerHTML = `<b>${fmt(c.km)}</b> of ${fmt(total)} km²${likely}`;
   const ce = renderVerdict(c); renderLine(c); drawProfile(ce); markHeat();
 }
 
