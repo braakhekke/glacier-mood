@@ -3,177 +3,222 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Glacier Zero Line</title>
-<meta name="description" content="Is today a good or bad day for Swiss glaciers? The 0 °C line from live MeteoSwiss stations, mapped over every glacier, with history back to 1993.">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<title>Zero Melt</title>
+<meta name="description" content="Is today a good day for Switzerland's glaciers? See where the freezing line sits over every glacier right now, and every day back to 1993.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&family=Caveat:wght@600&display=swap">
 <style>
-/* Layout: verdict banner on top, then map + reading column, then history. Warm = ice below the 0 °C line (air above freezing), cool = ice above it. */
+/* Zero Melt look: a trailhead sticker board. Chunky outlined cards with hard offset shadows, snow-sky paper with faint contour lines,
+   glacier blue against sun orange, a marker-pen highlight on the headline and handwriting for asides. */
 :root {
   color-scheme: light;
-  --bg: #f3f5f7; --panel: #ffffff; --ink: #14202b; --ink-2: #4b5b69; --line: #d5dce2;
-  --map: #e6ebef; --border: #8fa1b0; --h0: #1e4f8f; --h1: #a8c6e6; --h2: #f3e6cf; --h3: #ea7a3c; --h4: #8c1c0e;
-  --melt: #d9480f; --ice: #2f6fb3; --ice-soft: #b9d3ea; --sel: #e8f0f8;
-  --font-head: "Space Grotesk", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
+  --bg: #e6f3fa; --panel: #ffffff; --ink: #0c2340; --ink-2: #44607c; --line: #c3d8e7;
+  --edge: #0c2340; --shadow: #0c2340; --on-tier: #0c2340; --on-red: #ffffff;
+  --map: #cfe8f6; --border: #4a6a8a;
+  --melt: #ff5a1f; --ice: #1597d4; --ice-soft: #bfe6f7; --sel: #fff1a8; --sun: #ffd23f; --pine: #0e7a5f;
+  --h0: #1456a8; --h1: #8fd3f0; --h2: #ffe58a; --h3: #ff7a2e; --h4: #c8200e;
+  --topo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520' viewBox='0 0 520 520' fill='none' stroke='%230c2340' stroke-opacity='0.07' stroke-width='1.4'%3E%3Cpath d='M60 260c10-90 90-150 190-150s170 70 175 150-60 150-175 150S50 350 60 260z'/%3E%3Cpath d='M105 260c8-62 66-105 145-105s124 48 128 105-44 107-128 107-153-48-145-107z'/%3E%3Cpath d='M150 262c8-36 44-60 100-60s84 26 87 60-30 62-87 62-108-26-100-62z'/%3E%3Cpath d='M195 262c6-14 24-22 55-22s44 8 46 22-16 24-46 24-61-10-55-24z'/%3E%3Cpath d='M-40 60c60-30 120-20 170 20M380 470c40-60 110-80 190-60M430 40c30 30 90 40 140 10'/%3E%3C/svg%3E");
+  --font-head: "Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-hand: "Caveat", "Comic Sans MS", cursive;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0e151c; --panel: #16202a; --ink: #e8eef3; --ink-2: #9fb0be; --line: #2a3845;
-    --map: #101a23; --border: #4a5d6d; --h0: #2c64a8; --h1: #6b9ccc; --h2: #d9c9ae; --h3: #ff8a4c; --h4: #ffd0b0; --melt: #ff8a4c; --ice: #6fb0ec; --ice-soft: #2a4560; --sel: #1e2f3e;
+    --bg: #07182a; --panel: #0e2742; --ink: #eaf6ff; --ink-2: #9db9d0; --line: #234563;
+    --edge: #cfe8fa; --shadow: #02070d; --on-tier: #07182a; --on-red: #07182a;
+    --map: #0a2036; --border: #5d84a8;
+    --melt: #ff8a4c; --ice: #5cc4f5; --ice-soft: #1c4666; --sel: #3d3a12; --sun: #ffd23f; --pine: #3fd1a3;
+    --h0: #2d78d0; --h1: #5fb4e0; --h2: #f2e08e; --h3: #ff8a4c; --h4: #ff3d1f;
+    --topo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520' viewBox='0 0 520 520' fill='none' stroke='%23ffffff' stroke-opacity='0.05' stroke-width='1.4'%3E%3Cpath d='M60 260c10-90 90-150 190-150s170 70 175 150-60 150-175 150S50 350 60 260z'/%3E%3Cpath d='M105 260c8-62 66-105 145-105s124 48 128 105-44 107-128 107-153-48-145-107z'/%3E%3Cpath d='M150 262c8-36 44-60 100-60s84 26 87 60-30 62-87 62-108-26-100-62z'/%3E%3Cpath d='M195 262c6-14 24-22 55-22s44 8 46 22-16 24-46 24-61-10-55-24z'/%3E%3Cpath d='M-40 60c60-30 120-20 170 20M380 470c40-60 110-80 190-60M430 40c30 30 90 40 140 10'/%3E%3C/svg%3E");
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0e151c; --panel: #16202a; --ink: #e8eef3; --ink-2: #9fb0be; --line: #2a3845;
-  --map: #101a23; --border: #4a5d6d; --h0: #2c64a8; --h1: #6b9ccc; --h2: #d9c9ae; --h3: #ff8a4c; --h4: #ffd0b0; --melt: #ff8a4c; --ice: #6fb0ec; --ice-soft: #2a4560; --sel: #1e2f3e;
+  --bg: #07182a; --panel: #0e2742; --ink: #eaf6ff; --ink-2: #9db9d0; --line: #234563;
+  --edge: #cfe8fa; --shadow: #02070d; --on-tier: #07182a; --on-red: #07182a;
+  --map: #0a2036; --border: #5d84a8;
+  --melt: #ff8a4c; --ice: #5cc4f5; --ice-soft: #1c4666; --sel: #3d3a12; --sun: #ffd23f; --pine: #3fd1a3;
+  --h0: #2d78d0; --h1: #5fb4e0; --h2: #f2e08e; --h3: #ff8a4c; --h4: #ff3d1f;
+  --topo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520' viewBox='0 0 520 520' fill='none' stroke='%23ffffff' stroke-opacity='0.05' stroke-width='1.4'%3E%3Cpath d='M60 260c10-90 90-150 190-150s170 70 175 150-60 150-175 150S50 350 60 260z'/%3E%3Cpath d='M105 260c8-62 66-105 145-105s124 48 128 105-44 107-128 107-153-48-145-107z'/%3E%3Cpath d='M150 262c8-36 44-60 100-60s84 26 87 60-30 62-87 62-108-26-100-62z'/%3E%3Cpath d='M195 262c6-14 24-22 55-22s44 8 46 22-16 24-46 24-61-10-55-24z'/%3E%3Cpath d='M-40 60c60-30 120-20 170 20M380 470c40-60 110-80 190-60M430 40c30 30 90 40 140 10'/%3E%3C/svg%3E");
 }
 * { box-sizing: border-box; }
 html { background: var(--bg); }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--font-body); padding-block: 20px 40px;
+body { margin: 0; background: var(--bg) var(--topo); background-size: 520px 520px; color: var(--ink); font: 400 16px/1.55 var(--font-body); padding-block: 22px 0;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-a { color: var(--ice); }
+a { color: var(--ice); font-weight: 600; }
 [hidden] { display: none !important; }
-.wrap { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-h1 { font: 600 15px/1.2 var(--font-head); margin: 0; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
-h2 { font: 600 13px/1.2 var(--font-head); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-2); margin: 0 0 10px; }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 button { font: inherit; color: inherit; }
-button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+h2 { font: 800 21px/1.15 var(--font-head); letter-spacing: -0.01em; margin: 0 0 10px; }
+
+/* brand row */
+.brand { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand svg { width: 44px; height: 44px; flex: none; }
+.brand h1 { font: 800 clamp(26px, 4vw, 34px)/1 var(--font-head); margin: 0; letter-spacing: -0.03em; }
+.brand .hand { font: 600 24px/1 var(--font-hand); color: var(--ink-2); transform: rotate(-2deg); }
+
+/* sticker cards */
+.verdict, .panel, .mapbox { background: var(--panel); border: 2.5px solid var(--edge); border-radius: 22px; box-shadow: 6px 6px 0 var(--shadow); }
+.panel { padding: 18px; min-width: 0; }
 
 /* verdict banner */
-.verdict { --tier: var(--ice); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; border-top: 6px solid var(--tier); }
-.verdict .top { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.when { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
-.when input[type=date] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
-.chip { border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 3px 9px; cursor: pointer; font-size: 13px; }
-.chip[disabled] { opacity: 0.45; cursor: default; }
-.live { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
-.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ice); display: inline-block; }
-.live.off i { background: var(--ink-2); opacity: .6; }
-.tag { display: inline-block; font: 600 12px/1 var(--font-head); letter-spacing: 0.1em; text-transform: uppercase; color: #fff; background: var(--tier); padding: 6px 9px; border-radius: 4px; }
-:root[data-theme="dark"] .tag { color: #0e151c; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tag { color: #0e151c; } }
-.verdict h2.title { font: 600 clamp(28px, 4.6vw, 46px)/1.08 var(--font-head); letter-spacing: -0.015em; text-transform: none; color: var(--ink); margin: 12px 0 8px; text-wrap: balance; }
-.verdict .msg { margin: 0; font-size: 17px; max-width: 58ch; }
-.verdict .ctx { margin: 8px 0 0; color: var(--ink-2); font-size: 14px; max-width: 64ch; }
-.meter { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 16px; max-width: 460px; }
-.meter span { font-size: 11px; text-align: center; padding-top: 6px; color: var(--ink-2); border-top: 6px solid var(--c); opacity: 0.35; }
-.meter span.on { opacity: 1; color: var(--ink); font-weight: 600; }
+.verdict { --tier: var(--ice); position: relative; overflow: hidden; padding: 24px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 22px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tier) 20%, var(--panel)), var(--panel) 78%); }
+.verdict > * { position: relative; z-index: 1; }
+.verdict .ridge { position: absolute; z-index: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 90px; fill: var(--tier); opacity: 0.2; pointer-events: none; }
+.verdict .top { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.tag { display: inline-block; font: 800 14px/1 var(--font-head); letter-spacing: 0.06em; text-transform: uppercase; color: var(--on, var(--on-tier)); background: var(--tier); padding: 9px 14px; border: 2.5px solid var(--edge); border-radius: 10px; box-shadow: 3px 3px 0 var(--shadow); transform: rotate(-3deg); }
+.when { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 500; }
+.when input[type=date] { font: 500 14px var(--font-body); color: var(--ink); background: var(--panel); border: 2px solid var(--edge); border-radius: 10px; padding: 4px 8px; }
+.chip { border: 2px solid var(--edge); background: var(--panel); border-radius: 999px; padding: 5px 14px; cursor: pointer; font-size: 14px; font-weight: 700; transition: transform .08s, box-shadow .08s; }
+.chip:hover:not([disabled]) { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--shadow); }
+.chip:active:not([disabled]) { transform: translate(1px, 1px); box-shadow: none; }
+.chip[disabled] { opacity: 0.4; cursor: default; }
+.verdict h2.title { font: 800 clamp(36px, 6.4vw, 70px)/0.98 var(--font-head); letter-spacing: -0.035em; margin: 14px 0 12px; text-wrap: balance; }
+mark { background: var(--sun); color: #0c2340; padding: 0 0.14em; border-radius: 0.12em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.verdict .msg { margin: 0; font-size: 19px; line-height: 1.4; max-width: 56ch; font-weight: 500; }
+.verdict .ctx { margin: 10px 0 0; font: 600 23px/1.2 var(--font-hand); color: var(--ink-2); max-width: 60ch; transform: rotate(-0.6deg); }
+.meter { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 18px; max-width: 480px; }
+.meter span { font: 700 12px/1 var(--font-head); text-align: center; padding: 8px 2px; border: 2px solid var(--edge); border-radius: 999px; background: color-mix(in srgb, var(--c) 28%, var(--panel)); color: var(--ink-2); opacity: 0.75; }
+.meter span.on { background: var(--c); color: var(--on, var(--on-tier)); opacity: 1; box-shadow: 3px 3px 0 var(--shadow); transform: translateY(-2px) rotate(-2deg); }
+.live { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); font-weight: 500; }
+.live i { width: 10px; height: 10px; border-radius: 50%; background: var(--pine); display: inline-block; box-shadow: 0 0 0 0 color-mix(in srgb, var(--pine) 60%, transparent); animation: pulse 2s infinite; }
+.live.off i { background: var(--ink-2); animation: none; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .live i { animation: none; } .chip, .meter span { transition: none; } }
 .profile { min-width: 0; }
 .profile svg { width: 100%; height: auto; display: block; }
-.profile .cap { font-size: 12px; color: var(--ink-2); margin: 4px 0 0; }
+.profile svg text { font-family: var(--font-body); }
+.profile .cap { font: 600 19px/1.15 var(--font-hand); color: var(--ink-2); margin: 6px 0 0; }
 
-.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
-.leftcol { display: grid; gap: 14px; min-width: 0; }
-.mapbox { position: relative; background: var(--map); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; aspect-ratio: 1.45; min-height: 320px; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 20px; align-items: start; }
+.leftcol { display: grid; gap: 20px; min-width: 0; }
+.mapbox { position: relative; background: var(--map); overflow: hidden; aspect-ratio: 1.45; min-height: 320px; }
 canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; display: block; }
 canvas.drag { cursor: grabbing; }
-.zoom { position: absolute; right: 10px; top: 10px; display: grid; gap: 4px; }
-.zoom button, .stbtn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer; }
-.zoom button { width: 34px; height: 34px; font: 500 18px/1 var(--font-body); }
-.stbtn { position: absolute; left: 10px; top: 10px; padding: 6px 11px; font-size: 13px; font-weight: 500; }
-.stnote { position: absolute; left: 10px; top: 46px; font-size: 12px; color: var(--ink-2); background: color-mix(in srgb, var(--panel) 88%, transparent); border-radius: 4px; padding: 2px 7px; }
-.stbtn[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
-.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; font-size: 12.5px; line-height: 1.4; box-shadow: 0 4px 14px rgb(0 0 0 / 0.14); z-index: 3; max-width: 250px; }
-.legend { position: absolute; left: 10px; bottom: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font-size: 12.5px; display: grid; gap: 3px; }
-.legend span { display: flex; align-items: center; gap: 7px; }
-.sw { width: 11px; height: 11px; border-radius: 2px; flex: none; display: inline-block; }
-.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-2); font-size: 14px; }
-.side { display: grid; gap: 14px; min-width: 0; }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
-.big { font: 600 clamp(48px, 7vw, 64px)/1 var(--font-head); color: var(--melt); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.zoom { position: absolute; right: 12px; top: 12px; display: grid; gap: 6px; }
+.zoom button, .stbtn { border: 2px solid var(--edge); background: var(--panel); color: var(--ink); border-radius: 12px; cursor: pointer; box-shadow: 2px 2px 0 var(--shadow); font-weight: 700; }
+.zoom button { width: 36px; height: 36px; font: 700 19px/1 var(--font-body); }
+.stbtn { position: absolute; left: 12px; top: 12px; padding: 7px 14px; font-size: 14px; border-radius: 999px; }
+.stbtn[aria-pressed="true"] { background: var(--sun); color: #0c2340; }
+.stnote { position: absolute; left: 12px; top: 54px; font: 600 18px/1 var(--font-hand); color: var(--ink); background: color-mix(in srgb, var(--panel) 90%, transparent); border-radius: 8px; padding: 3px 9px; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 2px solid var(--edge); border-radius: 12px; padding: 8px 11px; font-size: 13px; line-height: 1.4; box-shadow: 3px 3px 0 var(--shadow); z-index: 3; max-width: 260px; }
+.legend { position: absolute; left: 12px; bottom: 12px; background: color-mix(in srgb, var(--panel) 94%, transparent); border: 2px solid var(--edge); border-radius: 14px; padding: 8px 12px; font-size: 13px; font-weight: 500; display: grid; gap: 4px; }
+.legend span { display: flex; align-items: center; gap: 8px; }
+.sw { width: 13px; height: 13px; border-radius: 4px; flex: none; display: inline-block; border: 1.5px solid var(--edge); }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-2); font: 600 22px var(--font-hand); }
+.side { display: grid; gap: 20px; min-width: 0; }
+.big { font: 800 clamp(60px, 8vw, 88px)/0.95 var(--font-head); color: var(--melt); font-variant-numeric: tabular-nums; letter-spacing: -0.04em; text-shadow: 3px 3px 0 var(--sun); }
 .big small { font-size: 0.45em; margin-left: 2px; }
-.lead { margin: 6px 0 0; }
-.meta { margin: 10px 0 0; color: var(--ink-2); font-size: 13px; }
-.meta b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
-.what { display: grid; gap: 8px; }
-.what label { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
-.what output { font-variant-numeric: tabular-nums; font-weight: 600; }
-input[type=range] { width: 100%; accent-color: var(--melt); }
-.reset { justify-self: start; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
-.reset[disabled] { opacity: 0.45; cursor: default; }
-ul.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.lead { margin: 10px 0 0; font-weight: 500; }
+.meta { margin: 10px 0 0; color: var(--ink-2); font-size: 14px; }
+.meta b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.what { display: grid; gap: 10px; }
+.what label { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 500; }
+.what output { font-variant-numeric: tabular-nums; font-weight: 800; }
+input[type=range] { width: 100%; accent-color: var(--melt); height: 28px; }
+.reset { justify-self: start; border: 2px solid var(--edge); background: var(--panel); border-radius: 999px; padding: 4px 14px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.reset[disabled] { opacity: 0.4; cursor: default; }
+ul.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+ul.list button { all: unset; box-sizing: border-box; display: grid; gap: 4px; width: 100%; padding: 8px 10px; border-radius: 14px; cursor: pointer; border: 2px solid transparent; }
+ul.list button:hover { background: color-mix(in srgb, var(--sun) 25%, var(--panel)); }
+ul.list button[aria-pressed="true"] { background: var(--sel); border-color: var(--edge); box-shadow: 3px 3px 0 var(--shadow); }
+ul.list button:focus-visible { outline: 3px solid var(--sun); }
 #list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
-@media (max-width: 600px) { #list { grid-template-columns: minmax(0, 1fr); } }
-ul.list button { all: unset; box-sizing: border-box; display: grid; gap: 3px; width: 100%; padding: 7px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
-ul.list button:hover { background: var(--bg); }
-ul.list button[aria-pressed="true"] { background: var(--sel); border-color: var(--line); }
-ul.list button:focus-visible { outline: 2px solid var(--ice); }
-.row { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
-.row span:last-child { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 600; }
+.row span:last-child { color: var(--ink-2); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .row span:first-child { min-width: 0; overflow-wrap: anywhere; }
-.row2 { font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.bar { height: 6px; border-radius: 3px; background: var(--ice-soft); overflow: hidden; }
+.row2 { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.bar { height: 9px; border-radius: 999px; background: var(--ice-soft); overflow: hidden; border: 1.5px solid var(--edge); }
 .bar i { display: block; height: 100%; background: var(--melt); }
-.hint { font-size: 12.5px; color: var(--ink-2); margin: 10px 0 0; }
-.models { margin-top: 8px; }
+.hint { font-size: 13.5px; color: var(--ink-2); margin: 10px 0 0; }
+.hand { font: 600 21px/1.15 var(--font-hand); color: var(--ink-2); }
+.models { margin-top: 10px; }
 
 /* history */
-.hist { display: grid; gap: 14px; }
+.hist { display: grid; gap: 16px; }
+.hist h2 { font-size: 26px; margin-bottom: 2px; }
+.hist .sub { margin: 0; }
 .hist .strip { position: relative; }
 .hist canvas { position: static; cursor: crosshair; width: 100%; height: auto; touch-action: manipulation; }
-.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .chart svg { width: 100%; height: auto; display: block; }
-.chart h3 { font: 600 14px/1.3 var(--font-body); margin: 0 0 2px; }
-.chart p { margin: 0 0 6px; font-size: 12.5px; color: var(--ink-2); }
-.scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); flex-wrap: wrap; }
-.scale .ramp { position: relative; width: 260px; height: 12px; border-radius: 2px; background: linear-gradient(90deg, var(--h0) 0%, var(--h1) 15%, var(--h2) 40%, var(--h3) 70%, var(--h4) 100%); margin-bottom: 14px; }
-.scale .ramp b { position: absolute; top: 14px; font-weight: 400; font-size: 11px; transform: translateX(-50%); white-space: nowrap; }
-details.tbl { font-size: 13px; color: var(--ink-2); }
-details.tbl summary { cursor: pointer; }
+.chart svg text { font-family: var(--font-body); }
+.chart h3 { font: 800 18px/1.2 var(--font-head); margin: 0 0 2px; }
+.chart p { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
+.scale { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; font-weight: 500; }
+.scale .ramp { position: relative; width: 260px; height: 14px; border: 2px solid var(--edge); border-radius: 8px; background: linear-gradient(90deg, var(--h0) 0%, var(--h1) 15%, var(--h2) 40%, var(--h3) 70%, var(--h4) 100%); margin-bottom: 16px; }
+.scale .ramp b { position: absolute; top: 16px; font-weight: 500; font-size: 11px; transform: translateX(-50%); white-space: nowrap; }
+details.tbl, details.nerd { font-size: 14px; color: var(--ink-2); }
+details summary { cursor: pointer; font-weight: 700; color: var(--ink); }
 .tblwrap { overflow-x: auto; max-height: 260px; margin-top: 8px; }
 table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
 th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
-.notes { color: var(--ink-2); font-size: 12.5px; display: grid; gap: 6px; }
-.notes p { margin: 0; max-width: 100ch; }
-@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } .mapbox { aspect-ratio: 1.1; } .verdict { grid-template-columns: minmax(0, 1fr); } .charts { grid-template-columns: minmax(0, 1fr); } }
+.nerd { display: grid; gap: 8px; }
+.nerd p { margin: 8px 0 0; max-width: 100ch; }
+.about { max-width: 70ch; font-size: 16px; }
+.about p { margin: 0 0 8px; }
+
+/* footer */
+.foot { position: relative; margin: 26px calc(-1 * max(16px, env(safe-area-inset-left, 0px))) 0; padding: 70px max(16px, env(safe-area-inset-left, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)); color: var(--ink); }
+.foot svg { position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 90px; fill: var(--ink); opacity: 0.14; }
+.foot p { position: relative; max-width: 1280px; margin: 0 auto; font-size: 13.5px; color: var(--ink-2); }
+.foot .hand { font-size: 22px; color: var(--ink); }
+
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } .mapbox { aspect-ratio: 1.1; } .verdict { grid-template-columns: minmax(0, 1fr); } .charts { grid-template-columns: minmax(0, 1fr); } #list { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Glacier Zero Line</h1>
+  <header class="brand">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="34" cy="13" r="7" fill="var(--sun)" stroke="var(--edge)" stroke-width="2.5"/><path d="M3 42 L19 13 L28 30 L33 22 L45 42 Z" fill="var(--ice)" stroke="var(--edge)" stroke-width="2.5" stroke-linejoin="round"/><path d="M13.5 24 L19 13 L24.5 23.5 L20.5 21.5 L17.5 25.5Z" fill="#fff"/></svg>
+    <h1>Zero Melt</h1>
+    <span class="hand">is the ice having a good day?</span>
+  </header>
 
   <section class="verdict" id="verdict" aria-live="polite">
+    <svg class="ridge" viewBox="0 0 1200 90" preserveAspectRatio="none" aria-hidden="true"><path d="M0 90V52L90 18l70 34 90-44 100 62 80-30 110 40 90-54 120 56 100-36 120 46 110-52 120 50V90Z"/></svg>
     <div>
       <div class="top">
         <span class="tag" id="vtag">…</span>
         <span class="when">
-          <label for="vdate">Showing</label>
+          <label for="vdate">Looking at</label>
           <input type="date" id="vdate">
-          <button class="chip" id="vnow" disabled>Now</button>
+          <button class="chip" id="vnow" disabled>Back to today</button>
         </span>
       </div>
-      <h2 class="title" id="vtitle">Reading the thermometers…</h2>
+      <h2 class="title" id="vtitle">Checking the thermometers…</h2>
       <p class="msg" id="vmsg"></p>
       <p class="ctx" id="vctx"></p>
       <div class="meter" id="vmeter"></div>
-      <p class="live off" id="vlive" style="margin:14px 0 0"><i></i><span>Connecting to MeteoSwiss…</span></p>
+      <p class="live off" id="vlive" style="margin:16px 0 0"><i></i><span>Calling the mountain stations…</span></p>
     </div>
     <div class="profile" id="vprof"></div>
   </section>
 
   <div class="main">
     <div class="leftcol">
-    <div class="mapbox" id="mapbox">
-      <canvas id="cv" aria-label="Map of Swiss glaciers coloured by whether they lie below the 0 degree line"></canvas>
-      <div class="loading" id="loading">Loading 1.4 million glacier cells…</div>
-      <button class="stbtn" id="stbtn" aria-pressed="false">Stations</button>
-      <div class="stnote" id="stnote" hidden></div>
-      <div class="zoom">
-        <button id="zin" aria-label="Zoom in">+</button>
-        <button id="zout" aria-label="Zoom out">−</button>
-        <button id="zfit" aria-label="Show all of Switzerland" style="font-size:13px">⤢</button>
+      <div class="mapbox" id="mapbox">
+        <canvas id="cv" aria-label="Map of Swiss glaciers coloured by whether they sit below the freezing line"></canvas>
+        <div class="loading" id="loading">Counting 1.4 million bits of ice…</div>
+        <button class="stbtn" id="stbtn" aria-pressed="false">Stations</button>
+        <div class="stnote" id="stnote" hidden></div>
+        <div class="zoom">
+          <button id="zin" aria-label="Zoom in">+</button>
+          <button id="zout" aria-label="Zoom out">−</button>
+          <button id="zfit" aria-label="Show all of Switzerland" style="font-size:14px">⤢</button>
+        </div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--melt)"></i>Below the freezing line: melting weather</span>
+          <span><i class="sw" style="background:var(--ice)"></i>Above it: still frozen</span>
+        </div>
+        <div class="tip" id="tip" hidden></div>
       </div>
-      <div class="legend">
-        <span><i class="sw" style="background:var(--melt)"></i>Below the 0 °C line, exposed to melt</span>
-        <span><i class="sw" style="background:var(--ice)"></i>Above the line, below freezing</span>
-      </div>
-      <div class="tip" id="tip" hidden></div>
-    </div>
-    <section class="panel">
-        <h2>Largest glaciers</h2>
+      <section class="panel">
+        <h2>The big ones</h2>
         <ul class="list" id="list"></ul>
-    </section>
+      </section>
     </div>
 
     <div class="side">
@@ -183,16 +228,16 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
         <p class="meta" id="meta"></p>
       </section>
       <section class="panel" id="srcpanel">
-        <h2>Where is the 0 °C line?</h2>
+        <h2>Where's the freezing line?</h2>
         <ul class="list" id="srcs"></ul>
         <div class="models"><button class="chip" id="loadmodels">Compare with four weather models</button></div>
         <p class="hint" id="srchint"></p>
       </section>
       <section class="panel what">
-        <h2>Move the line</h2>
-        <label for="off"><span>Raise the 0 °C line by</span><output id="offout" for="off">+0 m</output></label>
+        <h2>What if it got warmer?</h2>
+        <label for="off"><span>Push the freezing line up by</span><output id="offout" for="off">+0 m</output></label>
         <input id="off" type="range" min="0" max="3000" step="50" value="0">
-        <button class="reset" id="reset" disabled>Back to now</button>
+        <button class="reset" id="reset" disabled>Back to real life</button>
       </section>
     </div>
   </div>
@@ -200,10 +245,10 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
   <section class="panel hist" id="hist">
     <div>
       <h2>Every day since 1993</h2>
-      <p class="hint" style="margin:0">Each cell is one day: how much of Switzerland's glacier ice lay below the 0 °C line (daily mean temperature, 15 MeteoSwiss stations above 2,000 m). Click a day to see it on the map.</p>
+      <p class="hand sub">One box per day. Blue is frozen, red is the ice having a rough one. Tap a day to jump there.</p>
     </div>
-    <div class="strip"><canvas id="heat" aria-label="Heat strip of the share of glacier ice below the zero degree line, one cell per day since 1993"></canvas><div class="tip" id="htip" hidden></div></div>
-    <div class="scale"><span>Share of the ice below the 0 °C line:</span><span class="ramp"><b style="left:0;transform:none">0%</b><b style="left:15%">2%</b><b style="left:40%">16%</b><b style="left:70%">49%</b><b style="left:100%;transform:translateX(-100%)">100%</b></span><span style="margin-left:12px"><i class="sw" style="background:var(--h0)"></i> frozen day</span><span><i class="sw" style="background:var(--h4)"></i> worst days</span><span style="margin-left:12px"><i class="sw" style="background:repeating-linear-gradient(45deg,var(--line) 0 2px,transparent 2px 4px)"></i> no data</span></div>
+    <div class="strip"><canvas id="heat" aria-label="One box per day since 1993, coloured by how much glacier ice sat below the freezing line"></canvas><div class="tip" id="htip" hidden></div></div>
+    <div class="scale"><span>How much of the ice is under the freezing line:</span><span class="ramp"><b style="left:0;transform:none">0%</b><b style="left:15%">2%</b><b style="left:40%">16%</b><b style="left:70%">49%</b><b style="left:100%;transform:translateX(-100%)">100%</b></span><span style="margin-left:12px"><i class="sw" style="background:var(--h0)"></i> frozen day</span><span><i class="sw" style="background:var(--h4)"></i> worst days</span><span style="margin-left:12px"><i class="sw" style="background:repeating-linear-gradient(45deg,var(--line) 0 2px,transparent 2px 4px)"></i> no data</span></div>
     <div class="charts">
       <div class="chart" id="chA"></div>
       <div class="chart" id="chB"></div>
@@ -211,7 +256,12 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
     <details class="tbl"><summary>Show the yearly numbers as a table</summary><div class="tblwrap" id="tbl"></div></details>
   </section>
 
-  <div class="notes" id="notes"></div>
+  <section class="panel about" id="notes"></section>
+
+  <footer class="foot">
+    <svg viewBox="0 0 1200 90" preserveAspectRatio="none" aria-hidden="true"><path d="M0 90V60L110 14l80 44 100-52 90 58 110-38 90 46 120-60 100 52 90-30 120 48 90-42 100 44V90Z"/></svg>
+    <p><span class="hand">Go outside, the glaciers are worth it.</span> Made with open data from MeteoSwiss, GLAMOS, Copernicus and Open-Meteo.</p>
+  </footer>
 </div>
 
 <script>
@@ -224,11 +274,11 @@ const LAT0 = 45.7, LON0 = 6.7, STEP = 0.05, NLA = 29, NLO = 79, KH = 60;       /
 const SIGMA_K = [1.6, 1.6, 1.56, 1.56, 1.56, 1.0, 1.0, 1.0, 1.2, 1.2, 1.2, 1.6];
 const MODELS = [["ecmwf_ifs","ECMWF IFS (9 km)"],["gfs_seamless","GFS (NOAA)"],["icon_eu","ICON-EU (DWD, 7 km)"],["meteoswiss_icon_ch2","ICON-CH2 (MeteoSwiss, 2 km)"]];
 const TIERS = [
-  { max: 1,   tag: "Good day",     c: 0,  title: "A good day for the glaciers",     msg: (z, p, km) => `Frozen solid. The 0 °C line sits at ${fmt(z)} m, below almost none of the ice.` },
-  { max: 10,  tag: "Fair day",     c: 25, title: "A fair day for the glaciers",     msg: (z, p, km) => `Only the lowest tongues feel any warmth. The line is at ${fmt(z)} m and about ${fmt(km)} km² of ice is under it.` },
-  { max: 30,  tag: "Mixed day",    c: 50, title: "A mixed day for the glaciers",    msg: (z, p, km) => `The lower glaciers are losing ice while the high basins hold. The line is at ${fmt(z)} m, over about ${fmt(km)} km² of ice.` },
-  { max: 60,  tag: "Bad day",      c: 75, title: "A bad day for the glaciers",      msg: (z, p, km) => `${Math.round(p)}% of the ice, about ${fmt(km)} km², is sitting in air above freezing. The line is at ${fmt(z)} m.` },
-  { max: 101, tag: "Terrible day", c: 100, title: "A terrible day for the glaciers", msg: (z, p, km) => `The 0 °C line is up at ${fmt(z)} m, above most of the ice. Even the high snowfields are exposed.` },
+  { max: 1,   tag: "Good day",     col: "var(--ice)",  on: "var(--on-tier)", title: "A good day for the glaciers",     msg: (z, p, km) => `Deep freeze. The freezing line is down at ${fmt(z)} m, below almost none of the ice. The glaciers can chill.` },
+  { max: 10,  tag: "Fair day",     col: "var(--pine)", on: "var(--on-red)",  title: "A fair day for the glaciers",     msg: (z, p, km) => `Only the lowest tongues are getting wet. The freezing line is at ${fmt(z)} m, over about ${fmt(km)} km² of ice.` },
+  { max: 30,  tag: "Mixed day",    col: "var(--sun)",  on: "var(--on-tier)", title: "A mixed day for the glaciers",    msg: (z, p, km) => `The lower glaciers are sweating while the high ones hold on. The freezing line is at ${fmt(z)} m, over about ${fmt(km)} km² of ice.` },
+  { max: 60,  tag: "Bad day",      col: "var(--melt)", on: "var(--on-tier)", title: "A bad day for the glaciers",      msg: (z, p, km) => `${Math.round(p)}% of the ice, about ${fmt(km)} km², is sitting in air above freezing. The line is up at ${fmt(z)} m.` },
+  { max: 101, tag: "Terrible day", col: "var(--h4)",   on: "var(--on-red)",  title: "A terrible day for the glaciers", msg: (z, p, km) => `The freezing line is way up at ${fmt(z)} m, above most of the ice. Even the high snowfields are getting hit.` },
 ];
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString("en-US");
@@ -241,7 +291,7 @@ let HIST, ST = [], START, ND = 0, TS;                 // station list, history s
 let dayZ, dayG, dayN, dayShare;                       // per-day 0 °C height, cooling rate, station count, share of ice below
 let D, N, wx, wy, cz, cg, Zc, glaciers, total, cdf, offset = 0;
 let li0, lfx, lfy, rowY, rowStart, gx;
-let daySrc = null, dayActive = 0, modelsBusy = false;
+let daySrc = null, dayActive = 0, modelsBusy = false, GL = null, GLINFO = null;   // GL: yearly Swiss ice volume change (GLAMOS)
 let sel = { kind: "now" }, active = 0, sources = [], info = [], obsNow = null, liveOk = false, showStations = false;
 let colors = {}, packed = {};
 const view = { s: 1, ox: 0, oy: 0 };
@@ -331,7 +381,7 @@ function buildStationSource() {
   const mo = new Date(obsNow.time).getUTCMonth(), g = fitRate(zs, ts, mo);
   const Zsite = idx.map((i, a) => zs[a] + ts[a] / g), sites = idx.map(i => ST[i]);
   const sig = SIGMA_K[mo];
-  sources[0] = { id: "stations", name: "MeteoSwiss stations", field: lattice(Zsite, sites), g, rmse: sig, bias: 0, mo };
+  sources[0] = { id: "stations", name: "Mountain stations", field: lattice(Zsite, sites), g, rmse: sig, bias: 0, mo };
 }
 async function loadModels() {
   modelsBusy = true; renderSources();
@@ -438,9 +488,9 @@ function recount() {
 function renderAll() {
   const c = current(), lo = shareAt(c.z - c.sig), hi = shareAt(c.z + c.sig);
   $("pct").textContent = pf(c.p);
-  $("lead").innerHTML = `of Swiss glacier area lies below the 0 °C line, about <b>${fmt(c.km)}</b> of ${fmt(total)} km².` + (active === 0 || sel.kind === "day" ? ` With the line ±${fmt(c.sig)} m: ${hi < 0.0005 ? "still none of it" : lo > 0.9995 ? "still all of it" : `${pf(lo)}–${pf(hi)}%`}.` : "");
-  const when = sel.kind === "day" ? `daily mean of ${dayLabel(sel.k)}` : `${sources[active].name}, ${new Date(obsNow.time).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`;
-  $("meta").innerHTML = `0 °C line over the glaciers: <b>${fmt(c.z)} m</b> on average (${when})` + (offset ? `, raised by ${fmt(offset)} m.` : ".");
+  $("lead").innerHTML = `of Swiss glacier ice is below the freezing line, about <b>${fmt(c.km)}</b> of ${fmt(total)} km².` + (active === 0 || sel.kind === "day" ? ` Give or take ${fmt(c.sig)} m on the line: ${hi < 0.0005 ? "still none of it" : lo > 0.9995 ? "still all of it" : `${pf(lo)}–${pf(hi)}%`}.` : "");
+  const when = sel.kind === "day" ? `daily average of ${dayLabel(sel.k)}` : `${sources[active].name}, ${new Date(obsNow.time).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`;
+  $("meta").innerHTML = `Freezing line over the glaciers: <b>${fmt(c.z)} m</b> on average (${when})` + (offset ? `, pushed up ${fmt(offset)} m.` : ".");
   renderVerdict(c); renderList(); renderSources(); drawProfile(c); markHeat(); updateStationNote();
 }
 
@@ -456,18 +506,18 @@ function windowRank(kref) {   // share of comparable days (same time of year, ±
 }
 function renderVerdict(c) {
   const p = c.p * 100, t = TIERS.find(t => p < t.max) || TIERS[4], ti = TIERS.indexOf(t);
-  const root = $("verdict"); root.style.setProperty("--tier", `color-mix(in srgb, var(--melt) ${t.c}%, var(--ice))`);
+  const root = $("verdict"); root.style.setProperty("--tier", t.col); root.style.setProperty("--on", t.on);
   $("vtag").textContent = t.tag;
   const past = sel.kind === "day";
-  $("vtitle").textContent = past ? `${dayLabel(sel.k)}: ${t.title.charAt(0).toLowerCase() + t.title.slice(1)}` : t.title;
-  $("vmsg").textContent = t.msg(c.z, p, c.km) + (offset ? ` (With the line raised by ${fmt(offset)} m.)` : "");
+  $("vtitle").innerHTML = (past ? `${dayLabel(sel.k)}: ${t.title.charAt(0).toLowerCase() + t.title.slice(1)}` : t.title).replace("glaciers", "<mark>glaciers</mark>");
+  $("vmsg").textContent = t.msg(c.z, p, c.km) + (offset ? ` (If the line were ${fmt(offset)} m higher.)` : "");
   const kref = past ? sel.k : ND - 1, r = Number.isNaN(dayZ[kref]) ? NaN : windowRank(kref);
-  const lbl = past ? "That day's" : `Yesterday's (${dayLabel(kref).replace(/ \d{4}$/, "")})`;
+  const lbl = past ? "That day" : `Yesterday (${dayLabel(kref).replace(/ \d{4}$/, "")})`;
   const d = dayDate(kref), a = new Date(d - 7 * DAY), b = new Date(d.getTime() + 7 * DAY), md = x => x.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-  $("vctx").textContent = Number.isNaN(r) ? "" : `${lbl} mean 0 °C line, ${fmt(dayZ[kref])} m, was higher than on ${Math.round(r * 100)}% of ${md(a)}–${md(b)} days since 1993.`;
-  const m = $("vmeter"); m.innerHTML = TIERS.map((x, i) => `<span class="${i === ti ? "on" : ""}" style="--c:color-mix(in srgb, var(--melt) ${x.c}%, var(--ice))">${x.tag.replace(" day", "")}</span>`).join("");
+  $("vctx").textContent = Number.isNaN(r) ? "" : `${lbl} the freezing line sat at ${fmt(dayZ[kref])} m, higher than on ${Math.round(r * 100)}% of ${md(a)}–${md(b)} days since 1993.`;
+  const m = $("vmeter"); m.innerHTML = TIERS.map((x, i) => `<span class="${i === ti ? "on" : ""}" style="--c:${x.col};--on:${x.on}">${x.tag.replace(" day", "")}</span>`).join("");
   const lv = $("vlive"); lv.className = "live" + (past || liveOk ? "" : " off");
-  lv.querySelector("span").textContent = past ? "Time travel: station daily means from MeteoSwiss." : liveOk ? `Live from MeteoSwiss, ${new Date(obsNow.time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC. Refreshes every 10 minutes.` : "Offline snapshot, live data could not be reached.";
+  lv.querySelector("span").textContent = past ? "Time travel: daily averages from the mountain stations." : liveOk ? `Live from the mountain stations, ${new Date(obsNow.time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC. Refreshes every 10 minutes.` : "Offline snapshot, live data could not be reached.";
   $("vnow").disabled = !past; const di = $("vdate"); di.value = past ? dayDate(sel.k).toISOString().slice(0, 10) : todayStr();
 }
 function drawProfile(c) {    // ice area by height, split by the 0 °C line
@@ -479,8 +529,8 @@ function drawProfile(c) {    // ice area by height, split by the 0 °C line
   for (const e of [1500, 2500, 3500, 4500]) s += `<line x1="${pl}" x2="${w - pr}" y1="${y(e)}" y2="${y(e)}" stroke="var(--line)" stroke-width="1"/><text x="${pl - 6}" y="${y(e) + 4}" text-anchor="end" font-size="11" fill="var(--ink-2)">${fmt(e)}</text>`;
   v.forEach((f, b) => { const a = lo + b * bw, below = a + bw / 2 < c.z; s += `<rect x="${pl}" y="${y(a + bw) + 1}" width="${Math.max(x(f) - pl, 0)}" height="${Math.max(y(a) - y(a + bw) - 1, 0)}" fill="var(${below ? "--melt" : "--ice"})"/>`; });
   const yz = Math.min(Math.max(y(c.z), pt), pt + ph);
-  s += `<line x1="${pl - 4}" x2="${w - pr}" y1="${yz}" y2="${yz}" stroke="var(--ink)" stroke-width="2"/><text x="${w - pr}" y="${Math.max(yz - 6, 14)}" text-anchor="end" font-size="12" font-weight="600" fill="var(--ink)">0 °C line ${fmt(c.z)} m</text></svg>`;
-  $("vprof").innerHTML = s + `<p class="cap">Glacier ice by height (m). The line cuts the ice where the air turns above freezing.</p>`;
+  s += `<line x1="${pl - 4}" x2="${w - pr}" y1="${yz}" y2="${yz}" stroke="var(--ink)" stroke-width="2"/><text x="${w - pr}" y="${Math.max(yz - 6, 14)}" text-anchor="end" font-size="12" font-weight="600" fill="var(--ink)">freezing line ${fmt(c.z)} m</text></svg>`;
+  $("vprof").innerHTML = s + `<p class="cap">Glacier ice by height (m). The freezing line slices through it here.</p>`;
 }
 
 /* ---------- side panels ---------- */
@@ -498,8 +548,8 @@ function renderSources() {
       li.append(b); ul.append(li);
     });
     $("srchint").textContent = dayActive === 0
-      ? `The average 0 °C height of ${dayN[sel.k]} stations on ${dayLabel(sel.k)}, cooling ${(dayG[sel.k] * 1000).toFixed(1)} °C per km.`
-      : `Model daily mean 2 m temperatures at the same station sites, same cooling rate. Error compares the model with the stations' measured daily means.`;
+      ? `Average freezing-line height from ${dayN[sel.k]} mountain stations on ${dayLabel(sel.k)}, cooling ${(dayG[sel.k] * 1000).toFixed(1)} °C per km.`
+      : `Model daily averages at the same station spots, same cooling rate. The error is how far the model is from the real thermometers that day.`;
     if (daySrc.loaded && daySrc.missing.length) $("srchint").textContent += ` No archived data for this date from: ${daySrc.missing.join(", ")}.`;
     return;
   }
@@ -513,8 +563,8 @@ function renderSources() {
     li.append(b); ul.append(li);
   });
   const S = sources[active];
-  $("srchint").textContent = active === 0 ? `Measured temperatures at ${ST.filter((s, i) => !Number.isNaN(obsNow.t[i])).length} stations above 2,000 m, cooling ${(S.g * 1000).toFixed(1)} °C per km (fitted to the stations).`
-    : `Model 2 m temperatures at the same station sites, same cooling rate. Error compares the model with the measured temperatures right now.` + (S.rep != null ? ` The model's own freezing-level output runs ${S.rep.toFixed(1)} K ${S.rep > 0 ? "warm" : "cold"} there (about ${fmt(Math.abs(S.rep) / S.g)} m ${S.rep > 0 ? "too high" : "too low"}).` : "");
+  $("srchint").textContent = active === 0 ? `Real thermometers at ${ST.filter((s, i) => !Number.isNaN(obsNow.t[i])).length} mountain stations above 2,000 m, cooling ${(S.g * 1000).toFixed(1)} °C per km (fitted to the stations).`
+    : `Model temperatures at the same station spots, same cooling rate. The error is how far the model is from the real thermometers right now.` + (S.rep != null ? ` The model's own freezing-level output runs ${S.rep.toFixed(1)} K ${S.rep > 0 ? "warm" : "cold"} there (about ${fmt(Math.abs(S.rep) / S.g)} m ${S.rep > 0 ? "too high" : "too low"}).` : "");
 }
 function renderList() {
   const top = glaciers.filter(g => g.name).sort((a, b) => b.area - a.area).slice(0, 8), ul = $("list"); ul.textContent = "";
@@ -524,16 +574,21 @@ function renderList() {
 }
 function renderNotes() {
   $("notes").innerHTML =
-    `<p>Air above 0 °C over a glacier does not mean it is melting at that moment. Fresh snow, cold ice, shade and wind all hold melt back, and in late autumn most glaciers carry snow. The page shows exposure to melt, not measured melt.</p>` +
-    `<p>The line is the average height where the temperature would reach 0 °C, worked out from each station above 2,000 m (height + temperature ÷ cooling rate). The cooling rate is fitted to the stations each time, within 4–8 °C per km. Stations below 2,000 m are left out because cold air pools in valleys and pulls the line down. Leaving each station out in turn, the line misses its temperature by about 1.0 K in summer and 1.6 K in winter, roughly 160–280 m in height. History uses daily mean temperatures and needs at least 8 stations a day. In hot summer spells the line rises above the highest station (Jungfraujoch, 3,571 m), so there it is extended from the fitted cooling rate rather than measured.</p>` +
-    `<p>Glaciers are held at their 2023 outlines and 30 m terrain heights for every year. Earlier years had more ice at lower heights, so past exposure is understated, and the km² figures should not be compared across years. The Payerne radiosonde, a direct reading of the 0 °C height, is not used because its MeteoSwiss file is not openly downloadable yet.</p>` +
-    `<p>Data: <a href="https://doi.glamos.ch/data/inventory/inventory_sgi2023_r2026.html" target="_blank" rel="noopener">Swiss Glacier Inventory 2023</a> (GLAMOS, doi 10.18750/inventory.sgi2023.r2026), <a href="https://registry.opendata.aws/copernicus-dem/" target="_blank" rel="noopener">Copernicus DEM GLO-30</a>, <a href="https://opendatadocs.meteoswiss.ch/" target="_blank" rel="noopener">MeteoSwiss open data</a> (SwissMetNet), models via <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.</p>`;
+    `<h2>What am I looking at?</h2><p>Ice melts when the air around it is warmer than 0 °C. The <b>freezing line</b> is the height where the air flips from warm (below the line) to freezing (above it). Zero Melt reads live temperatures from ${ST.length} mountain stations, works out where that line is, and checks it against every glacier in Switzerland. The more ice sits below the line, the worse the day for the glaciers.</p>` +
+    `<p>Warm air is not the whole story: snow cover, shade and wind can hold melt back, and in late autumn most glaciers carry snow. So this shows how <i>exposed</i> the ice is, not how much is melting this minute.</p>` +
+    `<p>In the daily strip, <b>Bad days</b> counts the days a year when at least 30% of the ice was under the line. <b>Ice change</b> is how much Switzerland's total glacier volume shrank (or, rarely, grew) that glacier year (October to September), from GLAMOS${GLINFO ? `, release ${GLINFO.release}` : ""}. The latest year can still be revised.</p>` +
+    `<details class="nerd"><summary>The nerdy bit: how the line is worked out</summary>` +
+    `<p>For each station above 2,000 m the page calculates the height where its temperature would hit 0 °C (station height + temperature ÷ cooling rate), then averages them. The cooling rate is fitted to the stations each time, kept between 4 and 8 °C per km. Stations below 2,000 m are left out, because cold air pools in valleys and drags the line down. Leaving each station out in turn, the line misses its temperature by about 1.0 K in summer and 1.6 K in winter, roughly 160–280 m in height. History uses daily average temperatures and needs at least 8 stations a day. In hot spells the line rises above the highest station (Jungfraujoch, 3,571 m), so there it is extended from the fitted cooling rate rather than measured.</p>` +
+    `<p>Glaciers are held at their 2023 outlines and 30 m terrain heights for every year. Earlier years had more ice at lower heights, so past exposure is understated, and the km² figures should not be compared across years. The Payerne radiosonde, a direct reading of the freezing height, is not used because its MeteoSwiss file is not openly downloadable yet.</p>` +
+    `<p>Data: <a href="https://doi.glamos.ch/data/inventory/inventory_sgi2023_r2026.html" target="_blank" rel="noopener">Swiss Glacier Inventory 2023</a> (GLAMOS, doi 10.18750/inventory.sgi2023.r2026), <a href="https://doi.glamos.ch/data/massbalance_swisswide/massbalance_swisswide_${GLINFO ? GLINFO.release : 2026}_r${GLINFO ? GLINFO.release : 2026}.html" target="_blank" rel="noopener">Swisswide Glacier Mass Balance</a> (GLAMOS), <a href="https://registry.opendata.aws/copernicus-dem/" target="_blank" rel="noopener">Copernicus DEM GLO-30</a>, <a href="https://opendatadocs.meteoswiss.ch/" target="_blank" rel="noopener">MeteoSwiss open data</a> (SwissMetNet), weather models via <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.</p></details>`;
 }
 
 /* ---------- history charts ---------- */
 const HEAT = { x0: 34, top: 22, row: 15, right: 118, colw: 0 };
+const pctSigned = v => Math.abs(v) < 0.05 ? "±0.0%" : (v < 0 ? "−" : "+") + Math.abs(v).toFixed(1) + "%";
+const FONT = '"DM Sans", system-ui, sans-serif';
 const BAD = 0.3;   // a bad or terrible day: at least 30% of the ice below the line
-function heatGeom() { const c = $("heat"), w = c.clientWidth || 900; HEAT.colw = (w - HEAT.x0 - HEAT.right) / 366; return { w, h: HEAT.top + (dayDate(ND - 1).getUTCFullYear() - 1992) * HEAT.row + 4 }; }
+function heatGeom() { const c = $("heat"), w = c.clientWidth || 900; HEAT.compact = w < 720; HEAT.right = GL ? (HEAT.compact ? 108 : 244) : (HEAT.compact ? 60 : 122); HEAT.colw = (w - HEAT.x0 - HEAT.right) / 366; return { w, h: HEAT.top + (dayDate(ND - 1).getUTCFullYear() - 1992) * HEAT.row + 4 }; }
 const HSTOP = [0, 0.15, 0.4, 0.7, 1];   // positions along the scale; it runs on the square root of the share so small shares stay visible
 const heatColor = p => {
   const t = Math.sqrt(Math.min(Math.max(p, 0), 1)); let i = 0; while (i < 3 && t > HSTOP[i + 1]) i++;
@@ -543,9 +598,10 @@ const heatColor = p => {
 function drawHeat() {
   const c = $("heat"), { w, h } = heatGeom(), r = window.devicePixelRatio || 1; c.width = w * r; c.height = h * r; c.style.height = h + "px";
   const g = c.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h);
-  g.font = "11px Inter, system-ui, sans-serif"; g.fillStyle = colors["ink-2"]; g.textBaseline = "middle";
+  g.font = "11px " + FONT; g.fillStyle = colors["ink-2"]; g.textBaseline = "middle";
   const y0 = dayDate(0).getUTCFullYear(), y1 = dayDate(ND - 1).getUTCFullYear(), ys = yearStats(), mx = Math.max(...ys.map(r => r.bad), 1);
-  const xr = HEAT.x0 + 366 * HEAT.colw + 12, bw = HEAT.right - 12 - 34;
+  const xr = HEAT.x0 + 366 * HEAT.colw + 12, bw = HEAT.compact ? 0 : 66, vx = xr + bw + 48, vw = 56;
+  const mv = GL ? Math.max(...Object.values(GL).map(q => Math.abs(q.dv)), 1) : 1;
   for (let y = y0; y <= y1; y++) {
     const yy = HEAT.top + (y - y0) * HEAT.row;
     g.textAlign = "right"; g.fillStyle = colors["ink-2"]; g.fillText(String(y), HEAT.x0 - 6, yy + HEAT.row / 2 - .5);
@@ -556,16 +612,22 @@ function drawHeat() {
       if (Number.isNaN(dayZ[k])) { g.fillStyle = colors.line; g.fillRect(x, yy, HEAT.colw + .3, HEAT.row - 2); g.fillStyle = colors.bg; g.fillRect(x, yy + 5, HEAT.colw + .3, 2); continue; }
       g.fillStyle = heatColor(dayShare[k]); g.fillRect(x, yy, HEAT.colw + .3, HEAT.row - 2);
     }
-    // end of year: how many bad or terrible days
+    // end of year: bad or terrible days, and how much ice volume the glaciers lost that (hydrological) year
     const t = ys[y - y0], so = !t.full;
-    g.globalAlpha = so ? 0.55 : 1; g.fillStyle = colors.melt; g.fillRect(xr, yy + 1, Math.max(bw * t.bad / mx, 1), HEAT.row - 4); g.globalAlpha = 1;
-    g.textAlign = "right"; g.fillStyle = colors.ink; g.font = "600 11px Inter, system-ui, sans-serif"; g.fillText(String(t.bad) + (so ? "+" : ""), w - 2, yy + HEAT.row / 2 - .5); g.font = "11px Inter, system-ui, sans-serif";
+    if (bw) { g.globalAlpha = so ? 0.55 : 1; g.fillStyle = colors.melt; g.fillRect(xr, yy + 1, Math.max(bw * t.bad / mx, 1), HEAT.row - 4); g.globalAlpha = 1; }
+    g.textAlign = "right"; g.fillStyle = colors.ink; g.font = "600 11px " + FONT; g.fillText(String(t.bad) + (so ? "+" : ""), xr + (bw ? bw + 32 : 30), yy + HEAT.row / 2 - .5);
+    const gl = GL && GL[y];
+    if (gl) {
+      if (bw) { g.fillStyle = colors["ink-2"]; g.fillRect(vx, yy + 1, Math.max(vw * Math.abs(gl.dv) / mv, 1), HEAT.row - 4); }
+      g.fillStyle = colors.ink; g.fillText(pctSigned(gl.dv), w - 2, yy + HEAT.row / 2 - .5);
+    }
+    g.font = "11px " + FONT;
   }
   g.fillStyle = colors.bg; g.globalAlpha = 0.9;   // thin month dividers
   for (let m = 1; m < 12; m++) { const doy = Math.round((Date.UTC(2001, m, 1) - Date.UTC(2001, 0, 1)) / DAY); g.fillRect(HEAT.x0 + doy * HEAT.colw - .5, HEAT.top, 1, (y1 - y0 + 1) * HEAT.row); }
   g.globalAlpha = 1; g.textAlign = "left"; g.fillStyle = colors["ink-2"];
   ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].forEach((m, i) => { const doy = Math.round((Date.UTC(2001, i, 1) - Date.UTC(2001, 0, 1)) / DAY); g.fillText(m, HEAT.x0 + doy * HEAT.colw + 2, 9); });
-  g.textAlign = "left"; g.font = "600 11px Inter, system-ui, sans-serif"; g.fillStyle = colors.ink; g.fillText("Bad days", xr, 9);
+  g.textAlign = "left"; g.font = "600 11px " + FONT; g.fillStyle = colors.ink; g.fillText("Bad days", xr, 9); if (GL) { g.textAlign = HEAT.compact ? "right" : "left"; g.fillText("Ice change", HEAT.compact ? w - 2 : vx, 9); }
   c._ready = true; markHeat();
 }
 function markHeat() {
@@ -585,8 +647,8 @@ function heatHit(e) {
 $("heat").addEventListener("pointermove", e => {
   const { k, yr } = heatHit(e), t = $("htip");
   if (k < 0 && yr == null) { t.hidden = true; return; }
-  if (k < 0) { const r = yearStats().find(q => q.y === yr); t.innerHTML = `<b>${yr}</b><br>${r.bad} bad or terrible days${r.full ? "" : " so far"}<br><span style="color:var(--ink-2)">at least 30% of the ice below the 0 °C line</span>`; }
-  else t.innerHTML = Number.isNaN(dayZ[k]) ? `<b>${dayLabel(k, true)}</b><br>Too few stations reported` : `<b>${dayLabel(k, true)}</b><br>0 °C line ${fmt(dayZ[k])} m<br>${pf(dayShare[k])}% of the ice below it`;
+  if (k < 0) { const r = yearStats().find(q => q.y === yr); const gl = GL && GL[yr]; t.innerHTML = `<b>${yr}</b><br>${r.bad} bad or terrible days${r.full ? "" : " so far"}<br><span style="color:var(--ink-2)">at least 30% of the ice below the freezing line</span>` + (gl ? `<br><b>${pctSigned(gl.dv)}</b> ice volume (${fmt(gl.vol)} km³ left)<br><span style="color:var(--ink-2)">${yr - 1}-${yr} glacier year, Oct–Sep</span>` : ""); }
+  else t.innerHTML = Number.isNaN(dayZ[k]) ? `<b>${dayLabel(k, true)}</b><br>Too few stations reported` : `<b>${dayLabel(k, true)}</b><br>Freezing line at ${fmt(dayZ[k])} m<br>${pf(dayShare[k])}% of the ice is under it`;
   t.hidden = false; const r = $("heat").getBoundingClientRect(); t.style.left = Math.min(e.clientX - r.left + 14, r.width - t.offsetWidth - 4) + "px"; t.style.top = Math.max(e.clientY - r.top - t.offsetHeight - 8, 0) + "px";
 });
 $("heat").addEventListener("pointerleave", () => { $("htip").hidden = true; });
@@ -622,15 +684,15 @@ function lineChart(el, title, sub, pts, unit, fmtv) {   // pts: [{y,v,hollow}]
 }
 function drawCharts() {
   const ys = yearStats();
-  lineChart($("chA"), "Summer 0 °C line", "Average height of the 0 °C line, June to September.", ys.map(r => ({ y: r.y, v: r.summer })), "m", v => fmt(v));
-  lineChart($("chB"), "Bad days per year", "Days when at least 30% of the ice lay below the 0 °C line (bad or terrible days).", ys.map(r => ({ y: r.y, v: r.nd ? r.bad * (r.full ? 365 / r.nd : 1) : NaN, hollow: !r.full })), "days", v => fmt(v));
-  $("tbl").innerHTML = `<table><tr><th>Year</th><th>Summer 0 °C line (m)</th><th>Bad days (≥30% of ice below)</th><th>Days with data</th></tr>${ys.map(r => `<tr><td>${r.y}</td><td>${Number.isNaN(r.summer) ? "–" : fmt(r.summer)}</td><td>${r.bad}${r.full ? "" : " so far"}</td><td>${r.nd}</td></tr>`).join("")}</table>`;
+  lineChart($("chA"), "Summer freezing line", "Average height of the freezing line, June to September.", ys.map(r => ({ y: r.y, v: r.summer })), "m", v => fmt(v));
+  lineChart($("chB"), "Bad days per year", "Days when at least 30% of the ice sat under the freezing line (bad or terrible days).", ys.map(r => ({ y: r.y, v: r.nd ? r.bad * (r.full ? 365 / r.nd : 1) : NaN, hollow: !r.full })), "days", v => fmt(v));
+  $("tbl").innerHTML = `<table><tr><th>Year</th><th>Summer freezing line (m)</th><th>Bad days (≥30% of ice below)</th><th>Days with data</th>${GL ? "<th>Ice volume change (%)</th><th>Ice volume (km³)</th>" : ""}</tr>${ys.map(r => `<tr><td>${r.y}</td><td>${Number.isNaN(r.summer) ? "–" : fmt(r.summer)}</td><td>${r.bad}${r.full ? "" : " so far"}</td><td>${r.nd}</td>${GL ? `<td>${GL[r.y] ? GL[r.y].dv.toFixed(2) : "–"}</td><td>${GL[r.y] ? GL[r.y].vol.toFixed(1) : "–"}</td>` : ""}</tr>`).join("")}</table>`;
 }
 
 /* ---------- selection controls ---------- */
 function enterDay(k) {
   sel = { kind: "day", k }; dayActive = 0;
-  daySrc = { k, loaded: false, missing: [], list: [{ name: "MeteoSwiss stations", z: dayZ[k], g: dayG[k], bias: 0, rmse: SIGMA_K[dayDate(k).getUTCMonth()] }] };
+  daySrc = { k, loaded: false, missing: [], list: [{ name: "Mountain stations", z: dayZ[k], g: dayG[k], bias: 0, rmse: SIGMA_K[dayDate(k).getUTCMonth()] }] };
 }
 function selectDay(k) { enterDay(k); applySelection(); window.scrollTo({ top: 0, behavior: "smooth" }); }
 function selectNow() { sel = { kind: "now" }; applySelection(); }
@@ -669,18 +731,18 @@ function draw() {
   BORDER.forEach(([lo, la], i) => { const x = lo * COS * s + ox, y = -la * s + oy; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath();
   ctx.fillStyle = colors.panel; ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = colors.border; ctx.lineWidth = 1; ctx.stroke();
   if (N) splat(); ctx.setTransform(1, 0, 0, 1, 0, 0); if (N) ctx.drawImage(layer, 0, 0); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.font = "500 11px Inter, system-ui, sans-serif"; ctx.textBaseline = "middle";
+  ctx.font = "500 11px " + FONT; ctx.textBaseline = "middle";
   for (const [name, la, lo] of CITIES) { const x = lo * COS * s + ox, y = -la * s + oy; ctx.fillStyle = colors["ink-2"]; ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 7); ctx.fill(); label(name, x + 6, y, colors["ink-2"]); }
   if (N && s > 900) for (const g of glaciers) if (g.name && g.area > (s > 2500 ? 3 : 15)) { const x = (g.x0 + g.x1) / 2 * s + ox, y = (g.y0 + g.y1) / 2 * s + oy; if (x > 0 && y > 0 && x < W && y < H) label(g.name.replace("gletscher", "gl."), x, y, colors.ink, true); }
   if (showStations && ST.length && (obsNow || sel.kind === "day")) ST.forEach((st, i) => {
     const x = st.lo * COS * s + ox, y = -st.la * s + oy; if (x < -40 || y < -10 || x > W + 40 || y > H + 10) return;
     const v = stationValue(i), has = !Number.isNaN(v);
     ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fillStyle = has ? (v > 0 ? colors.melt : colors.ice) : colors.panel; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = has ? colors.panel : colors["ink-2"]; ctx.stroke();
-    ctx.font = "600 11.5px Inter, system-ui, sans-serif"; const txt = `${st.a} ${has ? (v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + "°" : "–"}`, tw = ctx.measureText(txt).width;
+    ctx.font = "600 11.5px " + FONT; const txt = `${st.a} ${has ? (v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + "°" : "–"}`, tw = ctx.measureText(txt).width;
     if (x + 9 + tw > W - 4) { ctx.textAlign = "right"; label(txt, x - 9, y, colors.ink); ctx.textAlign = "left"; } else label(txt, x + 9, y, colors.ink);
   });
   const km = 50 / 111.2 * s, bx = W - 16 - km, by = H - 16; ctx.strokeStyle = colors.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + km, by); ctx.stroke();
-  ctx.textAlign = "right"; ctx.font = "500 11px Inter, system-ui, sans-serif"; label("50 km", bx + km, by - 9, colors.ink); ctx.textAlign = "left";
+  ctx.textAlign = "right"; ctx.font = "500 11px " + FONT; label("50 km", bx + km, by - 9, colors.ink); ctx.textAlign = "left";
 }
 function splat() {
   lbuf.fill(0); const { s, ox, oy } = view, k = s * dpr, X0 = ox * dpr, Y0 = oy * dpr, cw = D.d * COS * k, ch = D.d * k, PW = layer.width, PH = layer.height, M = packed.melt, I = packed.ice, off = offset;
@@ -716,7 +778,7 @@ function hover(px, py) {
       const st = ST[bi], v = stationValue(bi), m = measured(bi), S = shownSource(), g = sel.kind === "day" ? dayG[sel.k] : sources[0].g, modelled = S && S.tSt, sg = (n) => (n < 0 ? "−" : "") + Math.abs(n).toFixed(1);
       showTip(px, py, `<b>${esc(st.n)}</b> <span style="color:var(--ink-2)">${st.a} · ${fmt(st.z)} m</span><br>` + (Number.isNaN(v) ? "No reading" :
         `${modelled ? esc(S.name.replace(/ \(.*\)/, "")) : sel.kind === "day" ? "Daily mean" : "Now"}: <b>${sg(v)} °C</b><br>` +
-        (modelled && !Number.isNaN(m) ? `Measured: ${sg(m)} °C (model ${v - m >= 0 ? "+" : "−"}${Math.abs(v - m).toFixed(1)})<br>` : "") + `Implies 0 °C at ${fmt(st.z + v / g)} m`)); return;
+        (modelled && !Number.isNaN(m) ? `Measured: ${sg(m)} °C (model ${v - m >= 0 ? "+" : "−"}${Math.abs(v - m).toFixed(1)})<br>` : "") + `Freezing line at ${fmt(st.z + v / g)} m`)); return;
     }
   }
   const wxp = (px - view.ox) / view.s, wyp = (py - view.oy) / view.s, cellPx = D.d * COS * view.s;
@@ -729,12 +791,12 @@ function hover(px, py) {
     }
     if (best < 0) { $("tip").hidden = true; return; }
     const g = glaciers[cg[best]], zl = Zc[best] + offset, melt = cz[best] < zl;
-    showTip(px, py, `<b>${esc(g.name || "Unnamed glacier")}</b> <span style="color:var(--ink-2)">${g.id} · ${g.area.toFixed(1)} km²</span><br>Ice at ${fmt(cz[best])} m, 0 °C line at ${fmt(zl)} m<br><span style="color:var(--${melt ? "melt" : "ice"});font-weight:600">${melt ? "Below the line: exposed to melt" : "Above the line: below freezing"}</span>`);
+    showTip(px, py, `<b>${esc(g.name || "Unnamed glacier")}</b> <span style="color:var(--ink-2)">${g.id} · ${g.area.toFixed(1)} km²</span><br>Ice at ${fmt(cz[best])} m, freezing line at ${fmt(zl)} m<br><span style="color:var(--${melt ? "melt" : "ice"});font-weight:600">${melt ? "Warm enough to melt here" : "Still frozen here"}</span>`);
   } else {
     let best = null, ba = 1e9; const pad = 6 / view.s;
     for (const g of glaciers) if (wxp >= g.x0 - pad && wxp <= g.x1 + pad && wyp >= g.y0 - pad && wyp <= g.y1 + pad) { const a = (g.x1 - g.x0 + 2 * pad) * (g.y1 - g.y0 + 2 * pad); if (a < ba) { ba = a; best = g; } }
     if (!best) { $("tip").hidden = true; return; }
-    showTip(px, py, `<b>${esc(best.name || "Unnamed glacier")}</b> <span style="color:var(--ink-2)">${best.id} · ${best.area.toFixed(1)} km²</span><br>${best.n ? Math.round(100 * best.melt / best.n) : 0}% of its area below the 0 °C line`);
+    showTip(px, py, `<b>${esc(best.name || "Unnamed glacier")}</b> <span style="color:var(--ink-2)">${best.id} · ${best.area.toFixed(1)} km²</span><br>${best.n ? Math.round(100 * best.melt / best.n) : 0}% of its ice is below the freezing line`);
   }
 }
 
@@ -749,11 +811,12 @@ async function start() {
   new ResizeObserver(resize).observe($("mapbox"));
   let wlast = 0; new ResizeObserver(() => { const w = $("heat").clientWidth; if (w !== wlast && dayShare) { wlast = w; drawHeat(); } }).observe($("hist"));
   const cellsP = fetch("cells.json").then(r => r.json());
-  await loadHistory(); await loadObs(); buildStationSource();
+  const glP = fetch("glamos.json").then(r => r.ok ? r.json() : null).catch(() => null);
+  await loadHistory(); { const g = await glP; GLINFO = g; GL = g ? g.years : null; } await loadObs(); buildStationSource();
   D = await cellsP; await decodeCells();
   dayShare = new Float32Array(ND); for (let k = 0; k < ND; k++) dayShare[k] = shareAt(dayZ[k]);
   const dd = $("vdate"); dd.min = dayDate(0).toISOString().slice(0, 10); dd.max = todayStr();
-  $("loading").hidden = true; applySelection(); drawHeat(); drawCharts();
+  $("loading").hidden = true; renderNotes(); applySelection(); drawHeat(); drawCharts();
   setInterval(refreshLive, 600000);
 }
 start().catch(e => { $("loading").textContent = "Something went wrong loading the data."; console.error(e); });

@@ -1,6 +1,6 @@
-# zero-melt
+# Zero Melt
 
-**Is today a good or bad day for Swiss glaciers?** A static website that maps the 0 °C line over every Swiss glacier and says how much ice is currently below it, with a heat strip of every day since 1993.
+**Is the ice having a good day?** A static website that maps the freezing line (0 °C) over every Swiss glacier and says how much ice is currently below it, with a strip of every day since 1993 next to GLAMOS's yearly ice volume change.
 
 - The 0 °C line comes from live temperatures at the 15 MeteoSwiss SwissMetNet stations above 2,000 m (height + temperature ÷ a cooling rate fitted to those stations each time).
 - Glaciers: Swiss Glacier Inventory 2023 (GLAMOS, doi 10.18750/inventory.sgi2023.r2026) on the Copernicus GLO-30 terrain model, 1.45 million 30 m cells.
@@ -22,6 +22,7 @@ then open http://localhost:8000 (a plain `file://` open will not work, the page 
 |---|---|---|
 | `cells.json` | glacier cells (position, height, glacier id), deflated | `scripts/make_cells.py`, needs the SGI 2023 shapefiles in `scripts/sgi23/` and network access to the DEM on AWS. Only when a new inventory is published. |
 | `history.json` | daily temperatures 1993 → end of last year, 15 stations | `scripts/fetch_history_raw.py` then `scripts/build_history.py`. The yearly workflow does this in January. |
+| `glamos.json` | yearly Swiss glacier volume change (GLAMOS Swisswide Glacier Mass Balance) | `scripts/build_glamos.py`. The yearly workflow does this too. |
 | `snapshot.json` | fallback readings used only if live MeteoSwiss data cannot be reached | any recent `t_now` reading |
 
 Python scripts need `numpy`; `make_cells.py` also needs `pyshp`, `shapely`, `pyproj`, `rasterio`.

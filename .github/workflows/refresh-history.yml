@@ -16,14 +16,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install numpy
-      - name: Rebuild history.json
+      - name: Rebuild history.json and glamos.json
         working-directory: scripts
         run: |
           python fetch_history_raw.py
           python build_history.py
+          python build_glamos.py
       - name: Commit if changed
         run: |
           git config user.name "github-actions"
           git config user.email "actions@users.noreply.github.com"
-          git add history.json
+          git add history.json glamos.json
           git diff --staged --quiet || (git commit -m "Refresh station history" && git push)
