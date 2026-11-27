@@ -69,7 +69,6 @@ h2 { font: 800 21px/1.15 var(--font-head); letter-spacing: -0.01em; margin: 0 0 
 .verdict .ridge { position: absolute; z-index: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 90px; fill: var(--tier); opacity: 0.2; pointer-events: none; }
 .verdict .top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .when { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 500; }
-.when input[type=date] { font: 500 14px var(--font-body); color: var(--ink); background: var(--panel); border: 2px solid var(--edge); border-radius: 10px; padding: 4px 8px; }
 .chip { border: 2px solid var(--edge); background: var(--panel); border-radius: 999px; padding: 5px 14px; cursor: pointer; font-size: 14px; font-weight: 700; transition: transform .08s, box-shadow .08s; }
 .chip:hover:not([disabled]) { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--shadow); }
 .chip:active:not([disabled]) { transform: translate(1px, 1px); box-shadow: none; }
@@ -106,19 +105,30 @@ canvas.drag { cursor: grabbing; }
 .zoom { position: absolute; right: 12px; top: 12px; display: grid; gap: 6px; }
 .zoom button, .stbtn { border: 2px solid var(--edge); background: var(--panel); color: var(--ink); border-radius: 12px; cursor: pointer; box-shadow: 2px 2px 0 var(--shadow); font-weight: 700; }
 .zoom button { width: 36px; height: 36px; font: 700 19px/1 var(--font-body); }
-.mapctl { position: absolute; left: 12px; top: 12px; display: flex; gap: 8px; flex-wrap: wrap; max-width: calc(100% - 72px); z-index: 2; }
+.mapctl { position: absolute; left: 12px; top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; max-width: calc(100% - 72px); z-index: 2; }
+.mapbox.is3d .mapctl { max-width: calc(100% - 170px); }
 .stbtn { padding: 7px 14px; font-size: 14px; border-radius: 999px; }
 .stbtn[aria-pressed="true"] { background: var(--sun); color: #0c2340; }
-.bgpick select { font: 700 14px var(--font-body); color: var(--ink); background: var(--panel); border: 2px solid var(--edge); border-radius: 999px; padding: 6px 12px; box-shadow: 2px 2px 0 var(--shadow); cursor: pointer; }
+.whenlbl { font-weight: 600; }
+.dp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.dpb { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--edge); background: var(--panel); font: 800 17px/1 var(--font-body); padding: 0; cursor: pointer; box-shadow: 2px 2px 0 var(--shadow); transition: transform .08s, box-shadow .08s; }
+.dpb:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--shadow); }
+.dpb:active { transform: translate(1px, 1px); box-shadow: none; }
+.selwrap { position: relative; display: inline-block; }
+.selwrap::after { content: ""; position: absolute; right: 12px; top: 50%; margin-top: -3px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--ink); pointer-events: none; }
+.sel { appearance: none; -webkit-appearance: none; font: 700 14px var(--font-body); color: var(--ink); background: var(--panel); border: 2px solid var(--edge); border-radius: 999px; padding: 6px 30px 6px 13px; box-shadow: 2px 2px 0 var(--shadow); cursor: pointer; }
+.sel:hover { background: color-mix(in srgb, var(--sun) 28%, var(--panel)); }
+.sel option { background: var(--panel); color: var(--ink); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .dpb { transition: none; } }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.imgnote { position: absolute; left: 12px; top: 56px; display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-body); background: color-mix(in srgb, var(--panel) 92%, transparent); border: 2px solid var(--edge); border-radius: 999px; padding: 3px 6px 3px 12px; max-width: calc(100% - 70px); }
+.imgnote { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-body); background: color-mix(in srgb, var(--panel) 92%, transparent); border: 2px solid var(--edge); border-radius: 999px; padding: 3px 6px 3px 12px; max-width: calc(100% - 70px); }
 .imgnote button { border: 1.5px solid var(--edge); background: var(--panel); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 10px; padding: 0; }
 .view3d { position: absolute; inset: 0; background: var(--map); }
 .mapbox.is3d #cv, .mapbox.is3d .zoom, .mapbox.is3d #stbtn, .mapbox.is3d #snbtn, .mapbox.is3d .imgnote, .mapbox.is3d .tip { display: none; }
 .ctl3d { position: absolute; right: 12px; top: 12px; z-index: 2; display: grid; gap: 4px; width: 130px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 2px solid var(--edge); border-radius: 14px; padding: 8px 12px; font: 700 13px var(--font-body); }
 .ctl3d label { display: flex; justify-content: space-between; }
 .ctl3d input { width: 100%; height: 22px; }
-.note3d { position: absolute; left: 12px; top: 56px; z-index: 2; margin: 0; max-width: calc(100% - 190px); font: 600 12.5px/1.35 var(--font-body); background: color-mix(in srgb, var(--panel) 92%, transparent); border: 2px solid var(--edge); border-radius: 12px; padding: 5px 11px; }
+.note3d { position: absolute; left: 12px; bottom: 76px; z-index: 2; margin: 0; max-width: calc(100% - 190px); font: 600 12.5px/1.35 var(--font-body); background: color-mix(in srgb, var(--panel) 92%, transparent); border: 2px solid var(--edge); border-radius: 12px; padding: 5px 11px; }
 .tip { position: absolute; pointer-events: none; background: var(--panel); border: 2px solid var(--edge); border-radius: 12px; padding: 8px 11px; font-size: 13px; line-height: 1.4; box-shadow: 3px 3px 0 var(--shadow); z-index: 3; max-width: 260px; }
 .legend { position: absolute; left: 12px; bottom: 12px; background: color-mix(in srgb, var(--panel) 94%, transparent); border: 2px solid var(--edge); border-radius: 14px; padding: 8px 12px; font-size: 13px; font-weight: 500; display: grid; gap: 4px; }
 .legend span { display: flex; align-items: center; gap: 8px; }
@@ -130,18 +140,11 @@ canvas.drag { cursor: grabbing; }
 .lead { margin: 10px 0 0; font-weight: 500; }
 .meta { margin: 10px 0 0; color: var(--ink-2); font-size: 14px; }
 .meta b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
-.what { display: grid; gap: 10px; }
-.what label { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 500; }
-.what output { font-variant-numeric: tabular-nums; font-weight: 800; }
 input[type=range] { width: 100%; accent-color: var(--melt); height: 28px; }
-.reset { justify-self: start; border: 2px solid var(--edge); background: var(--panel); border-radius: 999px; padding: 4px 14px; font-size: 14px; font-weight: 700; cursor: pointer; }
-.reset[disabled] { opacity: 0.4; cursor: default; }
 .row { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 600; }
 .row span:last-child { color: var(--ink-2); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .row span:first-child { min-width: 0; overflow-wrap: anywhere; }
 .row2 { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.bar { height: 9px; border-radius: 999px; background: var(--ice-soft); overflow: hidden; border: 1.5px solid var(--edge); }
-.bar i { display: block; height: 100%; background: var(--melt); }
 .hint { font-size: 13.5px; color: var(--ink-2); margin: 10px 0 0; }
 .hand { font: 500 15px/1.4 var(--font-body); color: var(--ink-2); }
 
@@ -152,9 +155,14 @@ input[type=range] { width: 100%; accent-color: var(--melt); height: 28px; }
 .hist .strip { position: relative; }
 .hist canvas { position: static; cursor: crosshair; width: 100%; height: auto; touch-action: manipulation; }
 .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.chart svg { width: 100%; height: auto; display: block; }
+.chart { position: relative; background: color-mix(in srgb, var(--bg) 55%, var(--panel)); border: 2px solid var(--edge); border-radius: 18px; padding: 14px 14px 8px; box-shadow: 4px 4px 0 var(--shadow); min-width: 0; }
+.chart svg { width: 100%; height: auto; display: block; touch-action: manipulation; }
+.chart .hit { cursor: crosshair; }
+.charthead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.chart h3 { font: 800 20px/1.2 var(--font-head); margin: 0; }
+.trendchip { background: var(--sun); color: #0c2340; border: 2px solid var(--edge); border-radius: 999px; padding: 3px 12px; font: 800 13px var(--font-body); transform: rotate(-1.5deg); white-space: nowrap; }
+.ctip { position: absolute; pointer-events: none; z-index: 3; background: var(--panel); border: 2px solid var(--edge); border-radius: 12px; padding: 7px 11px; font-size: 13px; line-height: 1.4; box-shadow: 3px 3px 0 var(--shadow); max-width: 240px; }
 .chart svg text { font-family: var(--font-body); }
-.chart h3 { font: 800 18px/1.2 var(--font-head); margin: 0 0 2px; }
 .chart p { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
 .scale { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; font-weight: 500; }
 .scale .ramp { position: relative; width: 260px; height: 14px; border: 2px solid var(--edge); border-radius: 8px; background: linear-gradient(90deg, var(--h0) 0%, var(--h1) 15%, var(--h2) 40%, var(--h3) 70%, var(--h4) 100%); margin-bottom: 16px; }
@@ -191,8 +199,7 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
       <div class="top">
         <div class="meter" id="vmeter"></div>
         <span class="when">
-          <label for="vdate">Looking at</label>
-          <input type="date" id="vdate">
+          <span class="whenlbl">Looking at</span><span class="dp" id="dpTop"></span>
           <button class="chip" id="vnow" disabled>Back to today</button>
         </span>
       </div>
@@ -210,8 +217,8 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
         <canvas id="cv" aria-label="Map of Swiss glaciers coloured by whether they sit below the freezing line"></canvas>
         <div class="view3d" id="view3d" hidden><div class="ctl3d"><label for="exag">Height <output id="exagout" for="exag">1.5×</output></label><input id="exag" type="range" min="1" max="4" step="0.25" value="1.5"></div><p class="note3d" id="note3d"></p></div>
         <div class="loading" id="loading">Counting 1.4 million bits of ice…</div>
-        <div class="mapctl"><button class="stbtn" id="stbtn" aria-pressed="false">Stations</button><button class="stbtn" id="snbtn" aria-pressed="false" hidden>Snow</button><button class="stbtn" id="b3d" aria-pressed="false">3D</button><label class="bgpick"><span class="sr">Map style</span><select id="bgsel"><option value="grey">Grey map</option><option value="sat">Satellite (Sentinel-2)</option><option value="aerial">Aerial (SWISSIMAGE)</option></select></label></div>
-        <div class="imgnote" id="imgnote" hidden><button id="imgprev" aria-label="Older image" hidden>◀</button><span id="imgtxt"></span><button id="imgnext" aria-label="Newer image" hidden>▶</button></div>
+        <div class="mapctl"><button class="stbtn" id="stbtn" aria-pressed="false">Stations</button><button class="stbtn" id="snbtn" aria-pressed="false" hidden>Snow</button><button class="stbtn" id="b3d" aria-pressed="false">3D</button><label class="bgpick selwrap"><span class="sr">Map style</span><select id="bgsel" class="sel"><option value="grey">Grey map</option><option value="sat">Satellite (Sentinel-2)</option><option value="aerial">Aerial (SWISSIMAGE)</option></select></label><span class="dp dpmap" id="dpMap"></span>
+        <div class="imgnote" id="imgnote" hidden><button id="imgprev" aria-label="Older image" hidden>◀</button><span id="imgtxt"></span><button id="imgnext" aria-label="Newer image" hidden>▶</button></div></div>
         <div class="zoom">
           <button id="zin" aria-label="Zoom in">+</button>
           <button id="zout" aria-label="Zoom out">−</button>
@@ -235,12 +242,6 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
         <h2>Where's the freezing line?</h2>
         <p class="row" id="srcrow"></p>
         <p class="hint" id="srchint"></p>
-      </section>
-      <section class="panel what">
-        <h2>What if it got warmer?</h2>
-        <label for="off"><span>Push the freezing line up by</span><output id="offout" for="off">+0 m</output></label>
-        <input id="off" type="range" min="0" max="3000" step="50" value="0">
-        <button class="reset" id="reset" disabled>Back to real life</button>
       </section>
     </div>
   </div>
@@ -297,7 +298,7 @@ const DAY = 86400000;
 /* ---------- state ---------- */
 let HIST, ST = [], START, ND = 0, TS;                 // station list, history start (ms), number of days, temps Float32 [station*ND + day]
 let dayZ, dayG, dayN, dayShare;                       // per-day 0 °C height, cooling rate, station count, share of ice below
-let D, N, wx, wy, cz, cg, Zc, glaciers, total, cdf, offset = 0;
+let D, N, wx, wy, cz, cg, Zc, glaciers, total, cdf;
 let li0, lfx, lfy, rowY, rowStart, gx;
 let GL = null, GLINFO = null, SNOW = null, showSnow = false;   // SNOW: latest snow depths from SLF's IMIS stations   // GL: yearly Swiss ice volume change (GLAMOS)
 let sel = { kind: "now" }, station = null, obsNow = null, liveOk = false, showStations = false;
@@ -430,22 +431,22 @@ function applySelection() {
 }
 function current() {   // everything the banner needs for the chosen state
   let zsum = 0, n = 0; for (let i = 0; i < N; i += 7) { zsum += Zc[i]; n++; }
-  const z = zsum / n + offset;
-  let melt = 0; for (let i = 0; i < N; i++) if (cz[i] < Zc[i] + offset) melt++;
+  const z = zsum / n;
+  let melt = 0; for (let i = 0; i < N; i++) if (cz[i] < Zc[i]) melt++;
   const p = melt / N, g = sel.kind === "day" ? dayG[sel.k] : station.g;
   const mo = sel.kind === "day" ? dayDate(sel.k).getUTCMonth() : station.mo;
   return { z, p, melt, g, sig: SIGMA_K[mo] / g, km: p * total };
 }
 function recount() {
   for (const g of glaciers) g.melt = 0;
-  for (let i = 0; i < N; i++) if (cz[i] < Zc[i] + offset) glaciers[cg[i]].melt++;
+  for (let i = 0; i < N; i++) if (cz[i] < Zc[i]) glaciers[cg[i]].melt++;
 }
 function renderAll() {
   const c = current(), lo = shareAt(c.z - c.sig), hi = shareAt(c.z + c.sig);
   $("pct").textContent = pf(c.p);
   $("lead").innerHTML = `of Swiss glacier ice is below the freezing line, about <b>${fmt(c.km)}</b> of ${fmt(total)} km².` + (` Give or take ${fmt(c.sig)} m on the line: ${hi < 0.0005 ? "still none of it" : lo > 0.9995 ? "still all of it" : `${pf(lo)}–${pf(hi)}%`}.`);
   const when = sel.kind === "day" ? `daily average of ${dayLabel(sel.k)}` : `${station.name}, ${new Date(obsNow.time).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`;
-  $("meta").innerHTML = `Freezing line over the glaciers: <b>${fmt(c.z)} m</b> on average (${when})` + (offset ? `, pushed up ${fmt(offset)} m.` : ".");
+  $("meta").innerHTML = `Freezing line over the glaciers: <b>${fmt(c.z)} m</b> on average (${when})` + ".";
   const ce = renderVerdict(c); renderLine(c); drawProfile(ce); markHeat();
 }
 
@@ -503,13 +504,13 @@ function renderVerdict(c) {
   const title = t.title.replace(" day ", ` ${unit} `), upTo = dayLabel(kref).replace(/ \d{4}$/, "") + " " + dayDate(kref).getUTCFullYear();
   const lead = unit === "day" ? (past ? `${dayLabel(sel.k)}: ` : "") : past ? `${CTX[unit].name} to ${upTo}: ` : `Last ${CTX[unit].n} days: `;
   $("vtitle").innerHTML = (lead ? lead + title.charAt(0).toLowerCase() + title.slice(1) : title).replace("glaciers", "<mark>glaciers</mark>");
-  $("vmsg").textContent = unit === "day" ? t.msg(e.z, p, e.km) + (offset ? ` (If the line were ${fmt(offset)} m higher.)` : "")
+  $("vmsg").textContent = unit === "day" ? t.msg(e.z, p, e.km)
     : `The freezing line averaged ${fmt(e.z)} m over the ${past ? "" : "last "}${CTX[unit].n} days${past ? " up to " + dayLabel(kref).replace(/ \d{4}$/, "") : ""}, with ${pf(e.p)}% of the ice (about ${fmt(e.km)} km²) below it on an average day. ${PERIOD_FLAVOUR[ti]}`;
   $("vctx").innerHTML = contextChart(kref, past);
   const m = $("vmeter"); m.innerHTML = TIERS.map((x, i) => `<span class="${i === ti ? "on" : ""}" style="--c:${x.col};--on:${x.on}">${x.tag.replace(" day", "")}</span>`).join("");
   const lv = $("vlive"); lv.className = "live" + (past || liveOk ? "" : " off");
   lv.querySelector("span").textContent = past ? "Time travel: daily averages from the mountain stations." : liveOk ? `Live from the mountain stations, ${new Date(obsNow.time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC. Refreshes every 10 minutes.` : "Offline snapshot, live data could not be reached.";
-  $("vnow").disabled = !past; const di = $("vdate"); di.value = past ? dayDate(sel.k).toISOString().slice(0, 10) : todayStr();
+  $("vnow").disabled = !past; syncPickers();
   return e;
 }
 function drawProfile(c) {    // ice area by height, split by the 0 °C line
@@ -628,25 +629,45 @@ function yearStats() {
   return out;
 }
 const niceStep = r => { const p = 10 ** Math.floor(Math.log10(r)), m = r / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; };
-function lineChart(el, title, sub, pts, unit, fmtv) {   // pts: [{y,v,hollow}]
-  const w = 520, h = 250, pl = 46, pr = 10, pt = 10, pb = 26, v = pts.filter(p => !Number.isNaN(p.v));
-  const ymin = Math.min(...v.map(p => p.v)), ymax = Math.max(...v.map(p => p.v)), span = (ymax - ymin) || 1, st = niceStep(span * 1.2 / 4), lo = Math.floor((ymin - span * 0.05) / st) * st, hi = Math.ceil((ymax + span * 0.05) / st) * st;
-  const x0 = v[0].y, x1 = v[v.length - 1].y, X = y => pl + (w - pl - pr) * (y - x0) / (x1 - x0), Y = a => pt + (h - pt - pb) * (1 - (a - lo) / (hi - lo));
-  const n = v.length, mx = v.reduce((s, p) => s + p.y, 0) / n, my = v.reduce((s, p) => s + p.v, 0) / n; let sxy = 0, sxx = 0; v.forEach(p => { sxy += (p.y - mx) * (p.v - my); sxx += (p.y - mx) ** 2; });
-  const b = sxy / sxx, a0 = my - b * mx;
-  let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(title)}">`;
-  for (let val = lo; val <= hi + st / 2; val += st) { s += `<line x1="${pl}" x2="${w - pr}" y1="${Y(val)}" y2="${Y(val)}" stroke="var(--line)"/><text x="${pl - 6}" y="${Y(val) + 4}" text-anchor="end" font-size="11" fill="var(--ink-2)">${fmtv(val)}</text>`; }
-  for (let y = Math.ceil(x0 / 5) * 5; y <= x1; y += 5) s += `<text x="${X(y)}" y="${h - 8}" text-anchor="middle" font-size="11" fill="var(--ink-2)">${y}</text>`;
-  s += `<line x1="${X(x0)}" y1="${Y(a0 + b * x0)}" x2="${X(x1)}" y2="${Y(a0 + b * x1)}" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
-  s += `<polyline fill="none" stroke="var(--melt)" stroke-width="2" stroke-linejoin="round" points="${v.map(p => `${X(p.y)},${Y(p.v)}`).join(" ")}"/>`;
-  v.forEach(p => s += `<circle cx="${X(p.y)}" cy="${Y(p.v)}" r="4" fill="${p.hollow ? "var(--panel)" : "var(--melt)"}" stroke="${p.hollow ? "var(--melt)" : "var(--panel)"}" stroke-width="2"><title>${p.y}: ${fmtv(p.v)} ${unit}${p.hollow ? " (year not finished)" : ""}</title></circle>`);
+function trendChart(el, c) {   // c: { title, sub, pts: [{y, v, partial}], kind: "line" | "bar", unit, noun, fmtv }
+  const v = c.pts.filter(p => !Number.isNaN(p.v)), n = v.length, w = 580, h = 290, pl = 54, pr = 14, pt = 26, pb = 34, bw = (w - pl - pr) / n;
+  const ymax = Math.max(...v.map(p => p.v)), ymin = c.kind === "bar" ? 0 : Math.min(...v.map(p => p.v)), span = (ymax - ymin) || 1, st = niceStep(span * 1.15 / 4);
+  const lo = c.kind === "bar" ? 0 : Math.floor((ymin - span * 0.08) / st) * st, hi = Math.ceil((ymax + span * 0.08) / st) * st;
+  const X = i => pl + bw * (i + 0.5), Y = a => pt + (h - pt - pb) * (1 - (a - lo) / (hi - lo));
+  const full = v.filter(p => !p.partial), nf = full.length, mx = full.reduce((q, p) => q + p.y, 0) / nf, my = full.reduce((q, p) => q + p.v, 0) / nf; let sxy = 0, sxx = 0; full.forEach(p => { sxy += (p.y - mx) * (p.v - my); sxx += (p.y - mx) ** 2; });
+  const b = sxy / sxx, a0 = my - b * mx, t0 = v[0].y, t1 = v[n - 1].y, tr = y => a0 + b * y;
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(c.title)}">`;
+  for (let val = lo; val <= hi + st / 2; val += st) s += `<line x1="${pl}" x2="${w - pr}" y1="${Y(val)}" y2="${Y(val)}" stroke="var(--line)" stroke-width="1.5"/><text x="${pl - 8}" y="${Y(val) + 4}" text-anchor="end" font-size="12" fill="var(--ink-2)">${c.fmtv(val)}</text>`;
+  v.forEach((p, i) => { if (p.y % 5 === 0) s += `<text x="${X(i)}" y="${h - 10}" text-anchor="middle" font-size="12" fill="var(--ink-2)">${p.y}</text>`; });
+  if (c.kind === "bar") {
+    v.forEach((p, i) => s += `<rect class="col" data-i="${i}" x="${X(i) - bw * 0.36}" y="${Y(p.v)}" width="${bw * 0.72}" height="${Math.max(Y(lo) - Y(p.v), 1)}" rx="4" fill="${p.partial ? "color-mix(in srgb, var(--melt) 35%, var(--panel))" : "var(--melt)"}" stroke="var(--edge)" stroke-width="1.8"${p.partial ? ' stroke-dasharray="4 3"' : ""}/>`);
+  } else {
+    s += `<path d="M${X(0)},${Y(lo)} ${v.map((p, i) => `L${X(i)},${Y(p.v)}`).join(" ")} L${X(n - 1)},${Y(lo)}Z" fill="color-mix(in srgb, var(--melt) 16%, transparent)"/>`;
+    s += `<polyline fill="none" stroke="var(--melt)" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" points="${v.map((p, i) => `${X(i)},${Y(p.v)}`).join(" ")}"/>`;
+    v.forEach((p, i) => s += `<circle class="dot" data-i="${i}" cx="${X(i)}" cy="${Y(p.v)}" r="5" fill="var(--melt)" stroke="var(--edge)" stroke-width="2"/>`);
+  }
+  s += `<line x1="${X(0)}" y1="${Y(tr(t0))}" x2="${X(n - 1)}" y2="${Y(tr(t1))}" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="6 5"/>`;
+  s += `<g class="hv" hidden><line class="hvline" y1="${pt - 8}" y2="${h - pb}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="3 3"/><circle class="hvdot" r="8" fill="var(--sun)" stroke="var(--edge)" stroke-width="2.5"/></g>`;
+  v.forEach((p, i) => s += `<rect class="hit" data-i="${i}" x="${pl + bw * i}" y="0" width="${bw}" height="${h - pb + 10}" fill="transparent"/>`);   // each year gets a full-height hover band
   s += `</svg>`;
-  el.innerHTML = `<h3>${title}</h3><p>${sub} Trend: <b>${b * 10 >= 0 ? "+" : "−"}${fmtv(Math.abs(b * 10))} ${unit} per decade</b> (dashed).</p>` + s;
+  const per = b * 10, chip = `<span class="trendchip">${per >= 0 ? "+" : "−"}${c.fmtv(Math.abs(per))} ${c.unit} per decade</span>`;
+  el.innerHTML = `<div class="charthead"><h3>${c.title}</h3>${chip}</div><p>${c.sub}</p>${s}<div class="ctip" hidden></div>`;
+  const svg = el.querySelector("svg"), tip = el.querySelector(".ctip"), hv = svg.querySelector(".hv"), hvline = svg.querySelector(".hvline"), hvdot = svg.querySelector(".hvdot");
+  const show = (i, ev) => {
+    const p = v[i], diff = p.v - my, bar = el.querySelectorAll(".col")[i];
+    hv.removeAttribute("hidden"); hvline.setAttribute("x1", X(i)); hvline.setAttribute("x2", X(i)); hvdot.setAttribute("cx", X(i)); hvdot.setAttribute("cy", Y(p.v));
+    el.querySelectorAll(".col").forEach(r => r.style.filter = ""); if (bar) bar.style.filter = "brightness(1.15) saturate(1.2)";
+    tip.innerHTML = `<b>${p.y}</b>${p.partial ? ' <span style="color:var(--ink-2)">(so far)</span>' : ""}<br><span style="font:800 18px var(--font-head)">${c.fmtv(p.v)}</span> ${c.noun}<br><span style="color:var(--ink-2)">${diff >= 0 ? "+" : "−"}${c.fmtv(Math.abs(diff))} vs the ${t0}–${full[nf - 1].y} average (${c.fmtv(my)})</span>`;
+    tip.removeAttribute("hidden"); const r = svg.getBoundingClientRect(), er = el.getBoundingClientRect(), px = (X(i) / w) * r.width + (r.left - er.left);
+    tip.style.left = Math.min(Math.max(px + 14, 4), er.width - tip.offsetWidth - 4) + "px"; tip.style.top = Math.max((Y(p.v) / h) * r.height + (r.top - er.top) - tip.offsetHeight - 14, 28) + "px";
+  };
+  svg.querySelectorAll(".hit").forEach(r => { const i = +r.dataset.i; r.addEventListener("pointerenter", e => show(i, e)); r.addEventListener("pointermove", e => show(i, e)); r.addEventListener("pointerdown", e => show(i, e)); });
+  svg.addEventListener("pointerleave", () => { hv.setAttribute("hidden", ""); tip.setAttribute("hidden", ""); el.querySelectorAll(".col").forEach(r => r.style.filter = ""); });
 }
 function drawCharts() {
   const ys = yearStats();
-  lineChart($("chA"), "Summer freezing line", "Average height of the freezing line, June to September.", ys.map(r => ({ y: r.y, v: r.summer })), "m", v => fmt(v));
-  lineChart($("chB"), "Bad days per year", "Days when at least 30% of the ice sat under the freezing line (bad or terrible days).", ys.map(r => ({ y: r.y, v: r.nd ? r.bad * (r.full ? 365 / r.nd : 1) : NaN, hollow: !r.full })), "days", v => fmt(v));
+  trendChart($("chA"), { title: "Summer freezing line", sub: "Average height of the freezing line, June to September. Hover a year.", pts: ys.map(r => ({ y: r.y, v: r.summer })), kind: "line", unit: "m", noun: "m on average", fmtv: v => fmt(v) });
+  trendChart($("chB"), { title: "Bad days per year", sub: "Days when at least 30% of the ice sat under the freezing line (bad or terrible days). Hover a year.", pts: ys.map(r => ({ y: r.y, v: r.nd ? r.bad : NaN, partial: !r.full })), kind: "bar", unit: "days", noun: "bad days", fmtv: v => fmt(v) });
   $("tbl").innerHTML = `<table><tr><th>Year</th><th>Summer freezing line (m)</th><th>Bad days (≥30% of ice below)</th><th>Days with data</th>${GL ? "<th>Ice volume change (%)</th><th>Ice volume (km³)</th>" : ""}</tr>${ys.map(r => `<tr><td>${r.y}</td><td>${Number.isNaN(r.summer) ? "–" : fmt(r.summer)}</td><td>${r.bad}${r.full ? "" : " so far"}</td><td>${r.nd}</td>${GL ? `<td>${GL[r.y] ? GL[r.y].dv.toFixed(2) : "–"}</td><td>${GL[r.y] ? GL[r.y].vol.toFixed(1) : "–"}</td>` : ""}</tr>`).join("")}</table>`;
 }
 
@@ -656,12 +677,35 @@ function selectDay(k) { enterDay(k); applySelection(); window.scrollTo({ top: 0,
 function selectNow() { sel = { kind: "now" }; applySelection(); }
 $("vctx").addEventListener("click", e => { const b = e.target.closest("[data-m]"); if (!b || !lastCtx) return; ctxMode = b.dataset.m; renderAll(); });
 $("vnow").onclick = selectNow;
-$("vdate").addEventListener("change", e => {
-  if (!e.target.value) return; const d = new Date(e.target.value + "T00:00:00Z"), k = dayIndex(d);
-  if (e.target.value === todayStr()) { if (sel.kind === "day") selectNow(); return; }
-  if (k < 0 || k >= ND || Number.isNaN(dayZ[k])) { renderVerdict(current()); return; }
+/* ---- date picker: day / month / year dropdowns with step buttons, one in the banner and one on the map, always in step ---- */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], pickers = [];
+function buildPicker(host) {
+  const wrap = (f, label) => `<span class="selwrap"><select class="sel" data-f="${f}" aria-label="${label}"></select></span>`;
+  host.innerHTML = `<button class="dpb" data-step="-1" aria-label="Previous day">‹</button>${wrap("d", "Day")}${wrap("m", "Month")}${wrap("y", "Year")}<button class="dpb" data-step="1" aria-label="Next day">›</button>`;
+  const opt = (v, t) => `<option value="${v}">${t}</option>`, ty = +todayStr().slice(0, 4);
+  host.querySelector('[data-f="m"]').innerHTML = MONTHS.map((m, i) => opt(i, m)).join("");
+  host.querySelector('[data-f="y"]').innerHTML = Array.from({ length: ty - 1992 }, (_, i) => opt(ty - i, ty - i)).join("");
+  pickers.push(host);
+}
+function currentDate() { const dt = sel.kind === "day" ? dayDate(sel.k) : new Date(todayStr() + "T00:00:00Z"); return { y: dt.getUTCFullYear(), m: dt.getUTCMonth(), d: dt.getUTCDate() }; }
+function syncPickers() {
+  if (!ND) return; const t = currentDate(), dim = new Date(Date.UTC(t.y, t.m + 1, 0)).getUTCDate();
+  for (const h of pickers) {
+    const ds = h.querySelector('[data-f="d"]'); if (ds.options.length !== dim) ds.innerHTML = Array.from({ length: dim }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
+    ds.value = t.d; h.querySelector('[data-f="m"]').value = t.m; h.querySelector('[data-f="y"]').value = t.y;
+    h.querySelector('[data-step="1"]').disabled = sel.kind === "now";
+  }
+}
+function goDate(y, m, d) {
+  d = Math.min(d, new Date(Date.UTC(y, m + 1, 0)).getUTCDate());
+  const t = Date.UTC(y, m, d);
+  if (t >= Date.parse(todayStr() + "T00:00:00Z")) { if (sel.kind === "day") selectNow(); else syncPickers(); return; }
+  const k = Math.max(0, Math.min(dayIndex(new Date(t)), ND - 1));
+  if (Number.isNaN(dayZ[k])) { syncPickers(); return; }   // too few stations reported that day
   enterDay(k); applySelection();
-});
+}
+document.addEventListener("change", e => { const h = e.target.closest && e.target.closest(".dp"); if (!h || !e.target.dataset.f) return; const v = f => +h.querySelector(`[data-f="${f}"]`).value; goDate(v("y"), v("m"), v("d")); });
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".dpb"); if (!b) return; const t = currentDate(); goDate(t.y, t.m, t.d + (+b.dataset.step)); });
 $("bgsel").onchange = e => { BG.mode = e.target.value; updateImageryNote(); schedule(); schedule3D(); };
 $("b3d").onclick = () => set3D(!V3.on);
 $("exag").oninput = e => { V3.exag = +e.target.value; $("exagout").textContent = V3.exag + "×"; if (V3.terrain) { placeTerrain(); placePlane(); } };
@@ -669,9 +713,6 @@ $("imgprev").onclick = () => { if (satStep(1)) { updateImageryNote(); schedule()
 $("imgnext").onclick = () => { if (satStep(-1)) { updateImageryNote(); schedule(); } };
 $("snbtn").onclick = () => { showSnow = !showSnow; $("snbtn").setAttribute("aria-pressed", showSnow); schedule(); };
 $("stbtn").onclick = () => { showStations = !showStations; $("stbtn").setAttribute("aria-pressed", showStations); schedule(); };
-const off = $("off");
-off.addEventListener("input", () => { offset = +off.value; $("offout").textContent = "+" + fmt(offset) + " m"; $("reset").disabled = offset === 0; recount(); renderAll(); schedule(); schedule3D(); });
-$("reset").onclick = () => { off.value = 0; off.dispatchEvent(new Event("input")); };
 
 /* ---------- map ---------- */
 function fit() { const minX = 5.9, maxX = 10.55, minY = -mercY(47.85), maxY = -mercY(45.75); view.s = Math.min(W / (maxX - minX), H / (maxY - minY)); view.ox = (W - (maxX - minX) * view.s) / 2 - minX * view.s; view.oy = (H - (maxY - minY) * view.s) / 2 - minY * view.s; }
@@ -747,10 +788,10 @@ function draw() {
   ctx.textAlign = "right"; ctx.font = "500 11px " + FONT; label("50 km", bx + km, by - 9, colors.ink); ctx.font = "500 10px " + FONT; label("© swisstopo", W - 8, H - 4, colors["ink-2"]); ctx.textAlign = "left";
 }
 function splat() {
-  lbuf.fill(0); const { s, ox, oy } = view, k = s * dpr, X0 = ox * dpr, Y0 = oy * dpr, cw = D.d * k, ch = D.d * MC * k, PW = layer.width, PH = layer.height, M = packed.melt, I = packed.ice, MH = packed.meltHi, IH = packed.iceHi, hg = hoverG, off = offset;
+  lbuf.fill(0); const { s, ox, oy } = view, k = s * dpr, X0 = ox * dpr, Y0 = oy * dpr, cw = D.d * k, ch = D.d * MC * k, PW = layer.width, PH = layer.height, M = packed.melt, I = packed.ice, MH = packed.meltHi, IH = packed.iceHi, hg = hoverG;
   for (let i = 0; i < N; i++) {
     const x = wx[i] * k + X0, y = wy[i] * k + Y0; if (x < -cw || y < -ch || x >= PW || y >= PH) continue;
-    const melt = cz[i] < Zc[i] + off, hi = cg[i] === hg, c = melt ? (hi ? MH : M) : (hi ? IH : I), px0 = Math.max(Math.floor(x), 0), py0 = Math.max(Math.floor(y), 0), px1 = Math.min(Math.max(px0 + 1, Math.ceil(x + cw)), PW), py1 = Math.min(Math.max(py0 + 1, Math.ceil(y + ch)), PH);
+    const melt = cz[i] < Zc[i], hi = cg[i] === hg, c = melt ? (hi ? MH : M) : (hi ? IH : I), px0 = Math.max(Math.floor(x), 0), py0 = Math.max(Math.floor(y), 0), px1 = Math.min(Math.max(px0 + 1, Math.ceil(x + cw)), PW), py1 = Math.min(Math.max(py0 + 1, Math.ceil(y + ch)), PH);
     for (let py = py0; py < py1; py++) for (let p = py * PW + px0, e = py * PW + px1; p < e; p++) if (melt || (lbuf[p] !== M && lbuf[p] !== MH)) lbuf[p] = c;
   }
   lctx.putImageData(limg, 0, 0);
@@ -809,7 +850,7 @@ function hover(px, py) {
     }
     if (best < 0) { setHover(-1); $("tip").hidden = true; return; }
     setHover(cg[best]);
-    const g = glaciers[cg[best]], zl = Zc[best] + offset, melt = cz[best] < zl;
+    const g = glaciers[cg[best]], zl = Zc[best], melt = cz[best] < zl;
     const sn = SNOW && sel.kind === "now" ? snowAt(D.lon0 + (gx[best] + .5) * D.d, D.lat0 - (rowOf(best) + .5) * D.d, cz[best]) : null, snowLine = sn ? `<br>Snow nearby: ${snowText(sn.cm)} <span style="color:var(--ink-2)">(estimate from ${sn.n} SLF stations)</span>` : "";
     if (cellPx >= 1.5) showTip(px, py, `<b>${esc(g.name || "Unnamed glacier")}</b> <span style="color:var(--ink-2)">${g.id} · ${g.area.toFixed(1)} km²</span><br>Ice at ${fmt(cz[best])} m, freezing line at ${fmt(zl)} m<br><span style="color:var(--${melt ? "melt" : "ice"});font-weight:600">${melt ? "Warm enough to melt here" : "Still frozen here"}</span>${snowLine}`);
     else showTip(px, py, `<b>${esc(g.name || "Unnamed glacier")}</b> <span style="color:var(--ink-2)">${g.id} · ${g.area.toFixed(1)} km²</span><br>${g.n ? Math.round(100 * g.melt / g.n) : 0}% of its ice is below the freezing line<br>Ice here at ${fmt(cz[best])} m${snowLine}<br><span style="color:var(--ink-2)">Click to zoom in</span>`);
@@ -821,7 +862,7 @@ async function refreshLive() {
   try { await loadObs(); buildStationSource(); if (N && sel.kind === "now") applySelection(); } catch (e) { console.warn(e); }
 }
 async function start() {
-  readColors(); renderNotes();
+  readColors(); document.querySelectorAll(".dp").forEach(buildPicker); renderNotes();
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColors(); drawHeat(); schedule(); });
   new MutationObserver(() => { readColors(); drawHeat(); schedule(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   new ResizeObserver(resize).observe($("mapbox"));
@@ -832,7 +873,6 @@ async function start() {
   await loadHistory(); { const g = await glP; GLINFO = g; GL = g ? g.years : null; } await loadObs(); buildStationSource();
   D = await cellsP; await decodeCells(); loadOutlines();
   dayShare = new Float32Array(ND); for (let k = 0; k < ND; k++) dayShare[k] = shareAt(dayZ[k]);
-  const dd = $("vdate"); dd.min = dayDate(0).toISOString().slice(0, 10); dd.max = todayStr();
   $("loading").hidden = true; renderNotes(); applySelection(); drawHeat(); drawCharts();
   setInterval(refreshLive, 600000);
 }

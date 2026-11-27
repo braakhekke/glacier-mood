@@ -1,6 +1,6 @@
 /* 3D view: Mapterhorn terrain (open terrain tiles, read from a PMTiles archive), the chosen picture draped on it, glacier colours on top,
    and the freezing line as a translucent sheet. It shows the same area as the 2D map had on screen when 3D was switched on.
-   Uses globals from index.html (view, W, H, D, wx, wy, cz, Zc, station, dayZ, sel, offset, packed, colors, OUT, BORDERW, ...) only when functions run. */
+   Uses globals from index.html (view, W, H, D, wx, wy, cz, Zc, station, dayZ, sel, packed, colors, OUT, BORDERW, ...) only when functions run. */
 
 const V3 = { on: false, looping: false, libs: null, pm: null, region: null, gen: 0, timer: 0, exag: 1.5 };
 const MPD = 111319.49;   // metres per degree at the equator: scene units are web-mercator metres
@@ -41,14 +41,14 @@ async function loadDem(reg, cols) {   // heights for the region: pick a zoom tha
 }
 
 function planeZ(lon, lat) {   // freezing-line height at a spot: the smooth station field for now, one number for a past day
-  if (sel.kind === "day") return Math.max(dayZ[sel.k], 0) + offset;
+  if (sel.kind === "day") return Math.max(dayZ[sel.k], 0);
   const f = station.field, fi = (lat - LAT0) / STEP, fj = (lon - LON0) / STEP, i0 = Math.min(Math.max(Math.floor(fi), 0), NLA - 2), j0 = Math.min(Math.max(Math.floor(fj), 0), NLO - 2), a = Math.min(Math.max(fj - j0, 0), 1), b = Math.min(Math.max(fi - i0, 0), 1), k = i0 * NLO + j0;
-  return Math.max(0, (f[k] * (1 - a) + f[k + 1] * a) * (1 - b) + (f[k + NLO] * (1 - a) + f[k + NLO + 1] * a) * b + offset);
+  return Math.max(0, (f[k] * (1 - a) + f[k + 1] * a) * (1 - b) + (f[k + NLO] * (1 - a) + f[k + NLO + 1] * a) * b);
 }
 
 function cellsCanvas(v, PW, PH) {   // every glacier cell in its melt / frozen colour, painted for this view
   const cvs = document.createElement("canvas"); cvs.width = PW; cvs.height = PH; const c = cvs.getContext("2d"), img = c.createImageData(PW, PH), u = new Uint32Array(img.data.buffer);
-  const cw = D.d * v.s, ch = D.d * MC * v.s, M = packed.melt, I = packed.ice, off = offset;
+  const cw = D.d * v.s, ch = D.d * MC * v.s, M = packed.melt, I = packed.ice;
   for (let i = 0; i < N; i++) {
     const x = wx[i] * v.s + v.ox, y = wy[i] * v.s + v.oy; if (x < -cw || y < -ch || x >= PW || y >= PH) continue;
     const melt = cz[i] < Zc[i] + off, col = melt ? M : I, px0 = Math.max(Math.floor(x), 0), py0 = Math.max(Math.floor(y), 0), px1 = Math.min(Math.max(px0 + 1, Math.ceil(x + cw)), PW), py1 = Math.min(Math.max(py0 + 1, Math.ceil(y + ch)), PH);
