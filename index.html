@@ -107,9 +107,9 @@ button { font: inherit; color: inherit; }
 .mapbox { position: relative; height: clamp(440px, 66vh, 700px); background: var(--map); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; box-shadow: var(--card-shadow); }
 canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; display: block; }
 canvas.drag { cursor: grabbing; }
-.glass, .mapctl .stbtn, .zoom button, .legend, .imgnote, .ctl3d, .note3d, .mapctl .seg, .mapctl .sel, .mapctl .dpb, .icelbl { background: color-mix(in srgb, var(--panel) 82%, transparent); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3); border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); box-shadow: 0 6px 20px rgb(8 28 42 / .16); color: var(--ink); }
+.glass, .mapctl .stbtn, .zoom button, .legend, .imgnote, .note3d, .mapctl .seg, .mapctl .sel, .mapctl .dpb, .icelbl { background: color-mix(in srgb, var(--panel) 82%, transparent); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3); border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); box-shadow: 0 6px 20px rgb(8 28 42 / .16); color: var(--ink); }
 .mapctl { position: absolute; left: 12px; top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; max-width: calc(100% - 72px); z-index: 2; }
-.mapbox.is3d .mapctl { max-width: calc(100% - 170px); }
+.mapbox.is3d .mapctl { max-width: calc(100% - 24px); }
 .stbtn { border-radius: 999px; padding: 8px 16px; min-height: 38px; font: 600 14px var(--font-body); cursor: pointer; }
 .stbtn[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
 .icectl { display: inline-flex; align-items: center; gap: 6px; }
@@ -133,9 +133,6 @@ canvas.drag { cursor: grabbing; }
 .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-2); font: 600 15px var(--font-body); }
 .view3d { position: absolute; inset: 0; background: var(--map); }
 .mapbox.is3d #cv, .mapbox.is3d .zoom, .mapbox.is3d #stbtn, .mapbox.is3d #snbtn, .mapbox.is3d .imgnote, .mapbox.is3d .tip { display: none; }
-.ctl3d { position: absolute; right: 12px; top: 12px; z-index: 2; display: grid; gap: 4px; width: 140px; border-radius: 14px; padding: 9px 13px; font: 600 13px var(--font-body); }
-.ctl3d label { display: flex; justify-content: space-between; }
-.ctl3d input { width: 100%; height: 22px; accent-color: var(--ice); }
 .note3d { position: absolute; left: 12px; bottom: 76px; z-index: 2; margin: 0; max-width: calc(100% - 24px); font: 500 12.5px/1.4 var(--font-body); border-radius: 12px; padding: 6px 12px; }
 
 /* ---------- tooltips ---------- */
@@ -155,6 +152,7 @@ canvas.drag { cursor: grabbing; }
 .tile + .tile { border-left: 1px solid var(--line); }
 .big { font: 800 clamp(48px, 4.6vw, 68px)/.95 var(--font-head); letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--melt); margin-top: 6px; white-space: nowrap; }
 .big.ink { color: var(--ink); }
+.big.local { color: var(--ice); }
 .big small { font-size: .42em; margin-left: 3px; font-weight: 700; letter-spacing: .02em; }
 .cap { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.45; }
 .cap b { color: var(--ink); font-weight: 600; }
@@ -236,7 +234,7 @@ details.nerd p { margin: 10px 0 0; }
     <div class="leftcol">
 <div class="mapbox" id="mapbox">
   <canvas id="cv" aria-label="Map of Swiss glaciers coloured by whether they sit below the freezing line"></canvas>
-  <div class="view3d" id="view3d" hidden><div class="ctl3d"><label for="exag">Height <output id="exagout" for="exag">1.5×</output></label><input id="exag" type="range" min="1" max="4" step="0.25" value="1.5"></div><p class="note3d" id="note3d"></p></div>
+  <div class="view3d" id="view3d" hidden><p class="note3d" id="note3d"></p></div>
   <div class="loading" id="loading">Loading glaciers…</div>
   <div class="mapctl"><button class="stbtn" id="stbtn" aria-pressed="false">Stations</button><button class="stbtn" id="snbtn" aria-pressed="false" hidden>Snow</button><button class="stbtn" id="b3d" aria-pressed="false">3D</button><label class="bgpick selwrap"><span class="sr">Map style</span><select id="bgsel" class="sel"><option value="grey">Grey map</option><option value="sat">Satellite (Sentinel-2)</option><option value="aerial">Aerial (SWISSIMAGE)</option></select></label><span class="icectl"><span class="icelbl">Glaciers</span><span class="seg" id="icemode" role="group" aria-label="Show glaciers as melt colour, snow and ice from the satellite, outline, or hide them"><button data-ice="fill" aria-pressed="true">Melt</button><button data-ice="surface" aria-pressed="false">Snow &amp; ice</button><button data-ice="outline" aria-pressed="false">Outline</button><button data-ice="off" aria-pressed="false">Hide</button></span></span><span class="dp dpmap" id="dpMap"></span>
   <div class="imgnote" id="imgnote" hidden><button id="imgprev" aria-label="Previous (older) image" hidden>◀</button><span id="imgtxt"></span><button id="imgnext" aria-label="Newer image" hidden>▶</button></div></div>
@@ -462,12 +460,12 @@ function applySelection() {
   recount(); renderAll(); updateImageryNote(); schedule(); schedule3D();
 }
 function current() {   // everything the banner needs for the chosen state
-  let zsum = 0, n = 0; for (let i = 0; i < N; i += 7) { zsum += Zc[i]; n++; }
-  const z = zsum / n;
+  let zsum = 0, n = 0; const sample = new Float32Array(Math.ceil(N / 7)); for (let i = 0; i < N; i += 7) { sample[n] = Zc[i]; zsum += Zc[i]; n++; }
+  const z = zsum / n; sample.sort(); const zlo = sample[Math.floor(0.1 * (n - 1))], zhi = sample[Math.floor(0.9 * (n - 1))];   // the middle 80% of glacier cells
   let melt = 0; for (let i = 0; i < N; i++) if (cz[i] < Zc[i]) melt++;
   const p = melt / N, g = sel.kind === "day" ? dayG[sel.k] : station.g;
   const mo = sel.kind === "day" ? dayDate(sel.k).getUTCMonth() : station.mo;
-  return { z, p, melt, g, sig: SIGMA_K[mo] / g, km: p * total };
+  return { z, zlo, zhi, p, melt, g, sig: SIGMA_K[mo] / g, km: p * total };
 }
 function recount() {
   for (const g of glaciers) g.melt = 0;
@@ -554,11 +552,22 @@ function drawProfile(c) {    // ice area by height, split by the 0 °C line
 }
 
 /* ---------- side panels ---------- */
+let lastC = null, localKey = "";
+function setLocalLine(z, where) {   // the line under the mouse; null brings the average back
+  if (!lastC) return;
+  if (z == null) { if (localKey) renderLine(lastC); return; }
+  const key = Math.round(z) + where; if (key === localKey) return; localKey = key;
+  $("srcbig").classList.add("local"); $("srcbig").innerHTML = `<span>${fmt(z)}</span><small>m</small>`;
+  $("srcrow").textContent = where; $("srchint").textContent = `Average over the glaciers: ${fmt(lastC.z)} m`;
+}
 function renderLine(c) {
+  lastC = c; localKey = "";
   const day = sel.kind === "day", mo = day ? dayDate(sel.k).getUTCMonth() : station.mo, sig = SIGMA_K[mo], g = day ? dayG[sel.k] : station.g;
+  $("srcbig").classList.remove("local");
   $("srcbig").innerHTML = `<span>${fmt(c.z)}</span><small>m</small>`;
-  $("srcrow").innerHTML = day ? `Daily average · ${dayN[sel.k]} stations` : "Mountain stations · MeteoSwiss";
-  $("srchint").textContent = `±${fmt(sig / g)} m · cools ${(g * 1000).toFixed(1)} °C per km`;
+  const flat = Math.round(c.zhi) - Math.round(c.zlo) < 20;
+  $("srcrow").textContent = day ? `Average of ${dayN[sel.k]} stations, the same over every glacier` : "Average over the glaciers";
+  $("srchint").textContent = (flat ? "" : `${fmt(c.zlo)}–${fmt(c.zhi)} m across them · `) + `MeteoSwiss, ±${fmt(sig / g)} m`;
 }
 function renderNotes() {
   $("notes").innerHTML =
@@ -738,7 +747,6 @@ $("icemode").addEventListener("click", e => {
   setHover(-1); $("tip").hidden = true; schedule(); schedule3D();
 });
 $("b3d").onclick = () => set3D(!V3.on);
-$("exag").oninput = e => { V3.exag = +e.target.value; $("exagout").textContent = V3.exag + "×"; if (V3.terrain && !V3.exagRaf) V3.exagRaf = requestAnimationFrame(() => { V3.exagRaf = 0; placeTerrain(); placePlane(); }); };
 $("imgprev").onclick = () => { if (satStep(-1)) { updateImageryNote(); schedule(); } };
 $("imgnext").onclick = () => { if (satStep(1)) { updateImageryNote(); schedule(); } };
 $("snbtn").onclick = () => { showSnow = !showSnow; $("snbtn").setAttribute("aria-pressed", showSnow); updateSnowButton(); schedule(); };
@@ -844,7 +852,7 @@ function splat() {
 function label(t, x, y, color, center) { ctx.save(); if (center) ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeStyle = colors.map; ctx.lineJoin = "round"; ctx.strokeText(t, x, y); ctx.fillStyle = color; ctx.fillText(t, x, y); ctx.restore(); }
 function zoomAt(px, py, f) { const s2 = Math.min(Math.max(view.s * f, 100), 45000), k = s2 / view.s; view.ox = px - (px - view.ox) * k; view.oy = py - (py - view.oy) * k; view.s = s2; schedule(); }
 const ptrs = new Map(); let lastDist = 0;
-cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.offsetX, e.offsetY]); cv.classList.add("drag"); lastDist = 0; $("tip").hidden = true; clickStart = ptrs.size === 1 ? [e.offsetX, e.offsetY] : null; });
+cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.offsetX, e.offsetY]); cv.classList.add("drag"); lastDist = 0; $("tip").hidden = true; setLocalLine(null); clickStart = ptrs.size === 1 ? [e.offsetX, e.offsetY] : null; });
 cv.addEventListener("pointermove", e => {
   if (!ptrs.has(e.pointerId)) { hover(e.offsetX, e.offsetY); return; }
   const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.offsetX, e.offsetY]);
@@ -864,13 +872,13 @@ function flyTo(g) {   // glide to the clicked glacier
     view.s = s; view.ox = W / 2 - (c0[0] + (c1[0] - c0[0]) * e) * s; view.oy = H / 2 - (c0[1] + (c1[1] - c0[1]) * e) * s; schedule(); if (a < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
 }
-cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up); cv.addEventListener("pointerleave", () => { $("tip").hidden = true; setHover(-1); });
+cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up); cv.addEventListener("pointerleave", () => { $("tip").hidden = true; setHover(-1); setLocalLine(null); });
 cv.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
 $("zin").onclick = () => zoomAt(W / 2, H / 2, 1.6); $("zout").onclick = () => zoomAt(W / 2, H / 2, 1 / 1.6); $("zfit").onclick = () => { fit(); schedule(); };
 function tipHTML(o) {   // one look for every tooltip: title, small line, optional status chip, label / value rows, optional note
-  return `<div class="t1">${esc(o.title)}</div>` + (o.sub ? `<div class="t2">${esc(o.sub)}</div>` : "") +
-    (o.chip ? `<div class="tchip" style="--c:${o.chip.col};--on:${o.chip.on || "var(--on-tier)"}">${esc(o.chip.text)}</div>` : "") +
-    (o.rows && o.rows.length ? `<div class="trows">${o.rows.map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`).join("")}</div>` : "") +
+  const chip = o.chip ? `<div class="tchip" style="--c:${o.chip.col};--on:${o.chip.on || "var(--on-tier)"}">${esc(o.chip.text)}</div>` : "";
+  return `<div class="t1">${esc(o.title)}</div>` + (o.sub ? `<div class="t2">${esc(o.sub)}</div>` : "") + (o.chipLast ? "" : chip) +
+    (o.rows && o.rows.length ? `<div class="trows">${o.rows.map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`).join("")}</div>` : "") + (o.chipLast ? chip : "") +
     (o.note ? `<div class="tnote">${esc(o.note)}</div>` : "");
 }
 const SURF_SHORT = ["", "snow", "ice", "dark", "cloud"];
@@ -883,6 +891,7 @@ const snowShort = cm => cm < 3 ? "little to none" : `about ${fmt(Math.max(5, Mat
 function showTip(px, py, html) { const tip = $("tip"); tip.innerHTML = html; tip.hidden = false; const bw = $("mapbox").clientWidth; tip.style.left = Math.min(px + 14, bw - tip.offsetWidth - 6) + "px"; tip.style.top = Math.max(py - tip.offsetHeight - 10, 6) + "px"; }
 function hover(px, py) {
   if (!N) return;
+  setLocalLine(planeZ((px - view.ox) / view.s, invMerc(-(py - view.oy) / view.s)), "At this spot");
   if (showStations) {   // stations first: they sit on top of the ice
     let bi = -1, bd = 12;
     ST.forEach((st, i) => { const d = Math.hypot(st.lo * view.s + view.ox - px, -mercY(st.la) * view.s + view.oy - py); if (d < bd) { bd = d; bi = i; } });
@@ -909,13 +918,15 @@ function hover(px, py) {
     if (best < 0) { setHover(-1); $("tip").hidden = true; return; }
     setHover(cg[best]);
     const g = glaciers[cg[best]], zl = Zc[best], melt = cz[best] < zl;
+    setLocalLine(zl, "At " + (g.name || g.id));
     const sn = SNOW && sel.kind === "now" ? snowAt(D.lon0 + (gx[best] + .5) * D.d, D.lat0 - (rowOf(best) + .5) * D.d, cz[best]) : null;
     const dstr = SURF.t ? new Date(SURF.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "", sk = iceMode === "surface" && SURF.cls ? SURF.cls[best] : 0, o5 = g.gi * 5, tot5 = SURF.gc ? SURF.gc[o5 + 1] + SURF.gc[o5 + 2] + SURF.gc[o5 + 3] + SURF.gc[o5 + 4] : 0;
     const title = g.name || "Unnamed glacier", sub = `${g.area.toFixed(1)} km²`, idRow = ["Glacier ID", g.id], surfNote = iceMode === "surface" && dstr ? `Surface from Sentinel-2, ${dstr}.` : "", snowRows = sn ? [["Snow nearby", snowShort(sn.cm)]] : [], snowNote = sn ? `Snow is an estimate from ${sn.n} SLF stations.` : "";
-    if (cellPx >= 1.5) showTip(px, py, tipHTML({ title, sub, chip: melt ? { text: "Warm enough to melt here", col: "var(--melt)" } : { text: "Still frozen here", col: "var(--ice)" },
-      rows: [idRow, ["Ice height", `${fmt(cz[best])} m`], ["Freezing line", `${fmt(zl)} m`], ...(iceMode === "surface" ? [["Surface", sk ? SURF_NAMES[sk] : "no clear view"]] : []), ...snowRows], note: [surfNote, snowNote].filter(Boolean).join(" ") }));
-    else showTip(px, py, tipHTML({ title, sub, rows: [idRow, ["Under the freezing line", `${g.n ? Math.round(100 * g.melt / g.n) : 0}%`], ["Ice height here", `${fmt(cz[best])} m`],
-      ...(iceMode === "surface" && tot5 ? [["Surface", [1, 2, 3, 4].map(q => [Math.round(100 * SURF.gc[o5 + q] / tot5), SURF_SHORT[q]]).filter(r => r[0] > 0).map(r => `${r[0]}% ${r[1]}`).join(" · ")]] : []), ...snowRows], note: [surfNote, snowNote, "Click to zoom in."].filter(Boolean).join(" ") }));
+    const underRow = ["Under the freezing line", `${g.n ? Math.round(100 * g.melt / g.n) : 0}%`], localRows = [["Ice height here", `${fmt(cz[best])} m`], ["Freezing line here", `${fmt(zl)} m`]];
+    if (cellPx >= 1.5) showTip(px, py, tipHTML({ title, sub, chipLast: true, chip: melt ? { text: "Warm enough to melt here", col: "var(--melt)" } : { text: "Still frozen here", col: "var(--ice)" },
+      rows: [underRow, idRow, ...(iceMode === "surface" ? [["Surface", sk ? SURF_NAMES[sk] : "no clear view"]] : []), ...localRows, ...snowRows], note: [surfNote, snowNote].filter(Boolean).join(" ") }));
+    else showTip(px, py, tipHTML({ title, sub, rows: [underRow, idRow,
+      ...(iceMode === "surface" && tot5 ? [["Surface", [1, 2, 3, 4].map(q => [Math.round(100 * SURF.gc[o5 + q] / tot5), SURF_SHORT[q]]).filter(r => r[0] > 0).map(r => `${r[0]}% ${r[1]}`).join(" · ")]] : []), ...localRows, ...snowRows], note: [surfNote, snowNote, "Click to zoom in."].filter(Boolean).join(" ") }));
   }
 }
 
