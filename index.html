@@ -117,10 +117,15 @@ canvas.drag { cursor: grabbing; }
 .mapctl .seg { padding: 3px; }
 .zoom { position: absolute; right: 12px; top: 12px; display: grid; gap: 6px; z-index: 2; }
 .zoom button { width: 40px; height: 40px; border-radius: 12px; font: 600 20px/1 var(--font-body); cursor: pointer; padding: 0; }
-.legend { position: absolute; left: 12px; bottom: 12px; border-radius: 14px; padding: 9px 13px; font-size: 12.5px; font-weight: 500; display: grid; gap: 4px; z-index: 2; }
+.legends { position: absolute; left: 12px; bottom: 12px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; max-width: calc(100% - 24px); }
+.legend { border-radius: 14px; padding: 9px 13px; font-size: 12.5px; font-weight: 500; display: grid; gap: 4px; z-index: 2; }
 .legend span { display: flex; align-items: center; gap: 8px; }
 .sw { width: 12px; height: 12px; border-radius: 4px; flex: none; display: inline-block; border: 1px solid rgb(0 0 0 / .25); }
-.mapbox.ice-outline .legend, .mapbox.ice-off .legend, #legSurf { display: none; }
+.mapbox.ice-outline #legMelt, .mapbox.ice-off #legMelt, #legSurf, #legSnow { display: none; }
+.mapbox.snow-on #legSnow { display: grid; }
+#legSnow b { font: 700 12px var(--font-body); letter-spacing: .04em; }
+#legSnow .swrow { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+#legSnow .swrow span { display: inline-flex; align-items: center; gap: 6px; }
 .mapbox.ice-surface #legMelt { display: none; }
 .mapbox.ice-surface #legSurf { display: grid; }
 .imgnote { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-body); border-radius: 999px; padding: 4px 6px 4px 14px; max-width: calc(100% - 70px); }
@@ -240,15 +245,18 @@ details.nerd p { margin: 10px 0 0; }
     <button id="zout" aria-label="Zoom out">−</button>
     <button id="zfit" aria-label="Show all of Switzerland" style="font-size:14px">⤢</button>
   </div>
-  <div class="legend" id="legMelt">
-    <span><i class="sw" style="background:var(--melt)"></i>Below the freezing line</span>
-    <span><i class="sw" style="background:var(--ice)"></i>Above it</span>
-  </div>
-  <div class="legend" id="legSurf">
-    <span><i class="sw" style="background:var(--snow)"></i>Snow</span>
-    <span><i class="sw" style="background:var(--bare)"></i>Bare ice</span>
-    <span><i class="sw" style="background:var(--debris)"></i>Dark or debris</span>
-    <span><i class="sw" style="background:var(--cloudc)"></i>Cloud</span>
+  <div class="legends">
+    <div class="legend" id="legSnow"><b>Snow depth, cm</b><div class="swrow"></div></div>
+    <div class="legend" id="legMelt">
+      <span><i class="sw" style="background:var(--melt)"></i>Below the freezing line</span>
+      <span><i class="sw" style="background:var(--ice)"></i>Above it</span>
+    </div>
+    <div class="legend" id="legSurf">
+      <span><i class="sw" style="background:var(--snow)"></i>Snow</span>
+      <span><i class="sw" style="background:var(--bare)"></i>Bare ice</span>
+      <span><i class="sw" style="background:var(--debris)"></i>Dark or debris</span>
+      <span><i class="sw" style="background:var(--cloudc)"></i>Cloud</span>
+    </div>
   </div>
   <div class="tip" id="tip" hidden></div>
 </div>
@@ -733,7 +741,7 @@ $("b3d").onclick = () => set3D(!V3.on);
 $("exag").oninput = e => { V3.exag = +e.target.value; $("exagout").textContent = V3.exag + "×"; if (V3.terrain && !V3.exagRaf) V3.exagRaf = requestAnimationFrame(() => { V3.exagRaf = 0; placeTerrain(); placePlane(); }); };
 $("imgprev").onclick = () => { if (satStep(-1)) { updateImageryNote(); schedule(); } };
 $("imgnext").onclick = () => { if (satStep(1)) { updateImageryNote(); schedule(); } };
-$("snbtn").onclick = () => { showSnow = !showSnow; $("snbtn").setAttribute("aria-pressed", showSnow); schedule(); };
+$("snbtn").onclick = () => { showSnow = !showSnow; $("snbtn").setAttribute("aria-pressed", showSnow); updateSnowButton(); schedule(); };
 $("stbtn").onclick = () => { showStations = !showStations; $("stbtn").setAttribute("aria-pressed", showStations); schedule(); };
 
 /* ---------- map ---------- */
@@ -745,7 +753,7 @@ function resize() {
   if (first) fit(); schedule();
 }
 function schedule() { if (!raf) raf = requestAnimationFrame(draw); }
-function updateSnowButton() { $("snbtn").hidden = !SNOW || sel.kind === "day"; }   // snow depths are live only
+function updateSnowButton() { $("snbtn").hidden = !SNOW || sel.kind === "day"; $("mapbox").classList.toggle("snow-on", !!(showSnow && SNOW && sel.kind === "now")); }   // snow depths are live only
 function snowAt(lon, lat, z) {   // snow depth around a spot and height: stations within 60 km, weighted by distance and by how close their height is
   let sw = 0, sh = 0, n = 0;
   for (const q of SNOW.st) {
@@ -808,11 +816,17 @@ function draw() {
     ctx.font = "600 11.5px " + FONT; const txt = `${st.a} ${has ? (v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + "°" : "–"}`, tw = ctx.measureText(txt).width;
     if (x + 9 + tw > W - 4) { ctx.textAlign = "right"; label(txt, x - 9, y, colors.ink); ctx.textAlign = "left"; } else label(txt, x + 9, y, colors.ink);
   });
-  if (showSnow && SNOW && sel.kind === "now") SNOW.st.forEach(q => {
-    const x = q.lo * s + ox, y = -mercY(q.la) * s + oy; if (x < -30 || y < -10 || x > W + 30 || y > H + 10) return;
-    ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7); ctx.fillStyle = q.hs < 3 ? colors.panel : "#ffffff"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = colors.ink; ctx.stroke();
-    if (s > 400) { ctx.font = "700 11px " + FONT; label(`${Math.round(q.hs)} cm`, x + 8, y, colors.ink); }
-  });
+  if (showSnow && SNOW && sel.kind === "now") {   // deepest first, so the biggest numbers win when labels would collide
+    ctx.save(); ctx.font = "700 10.5px " + FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const placed = [], R = s < 400 ? 9 : 11;
+    SNOW.st.map(q => ({ q, x: q.lo * s + ox, y: -mercY(q.la) * s + oy })).filter(o => o.x > -20 && o.y > -20 && o.x < W + 20 && o.y < H + 20).sort((a, b) => b.q.hs - a.q.hs).forEach(o => {
+      const cl = snowClass(o.q.hs), txt = String(Math.round(o.q.hs)), r = Math.max(R, ctx.measureText(txt).width / 2 + 5);
+      const clash = placed.some(p => Math.hypot(p.x - o.x, p.y - o.y) < p.r + r - 1), rad = clash ? 4.5 : r;
+      ctx.beginPath(); ctx.arc(o.x, o.y, rad, 0, 7); ctx.fillStyle = cl.c; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(12,26,37,.45)"; ctx.stroke();
+      if (!clash) { ctx.fillStyle = cl.t; ctx.fillText(txt, o.x, o.y + .5); placed.push({ x: o.x, y: o.y, r }); }
+    });
+    ctx.restore();
+  }
   const km = 50 / (111.32 * COS) * s, bx = W - 16 - km, by = H - 16; ctx.strokeStyle = colors.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + km, by); ctx.stroke();
   ctx.textAlign = "right"; ctx.font = "500 11px " + FONT; label("50 km", bx + km, by - 9, colors.ink); ctx.font = "500 10px " + FONT; label("© swisstopo", W - 8, H - 4, colors["ink-2"]); ctx.textAlign = "left";
 }
@@ -860,6 +874,10 @@ function tipHTML(o) {   // one look for every tooltip: title, small line, option
     (o.note ? `<div class="tnote">${esc(o.note)}</div>` : "");
 }
 const SURF_SHORT = ["", "snow", "ice", "dark", "cloud"];
+const SNOW_CLASSES = [   // snow depth in cm: colour, label, text colour that stays readable on it
+  { max: 5, c: "#cbb99e", t: "#0c1a25", n: "under 5" }, { max: 25, c: "#c6edff", t: "#0c1a25", n: "5–25" }, { max: 50, c: "#84ccf6", t: "#0c1a25", n: "25–50" },
+  { max: 100, c: "#3f95e6", t: "#ffffff", n: "50–100" }, { max: 150, c: "#3c4fc9", t: "#ffffff", n: "100–150" }, { max: 1e9, c: "#7a2fbd", t: "#ffffff", n: "over 150" }];
+const snowClass = hs => SNOW_CLASSES.find(c => hs < c.max);
 const sgn = n => (n < 0 ? "−" : "") + Math.abs(n).toFixed(1);
 const snowShort = cm => cm < 3 ? "little to none" : `about ${fmt(Math.max(5, Math.round(cm / 5) * 5))} cm`;
 function showTip(px, py, html) { const tip = $("tip"); tip.innerHTML = html; tip.hidden = false; const bw = $("mapbox").clientWidth; tip.style.left = Math.min(px + 14, bw - tip.offsetWidth - 6) + "px"; tip.style.top = Math.max(py - tip.offsetHeight - 10, 6) + "px"; }
@@ -877,7 +895,7 @@ function hover(px, py) {
   if (showSnow && SNOW && sel.kind === "now") {
     let bi = null, bd = 10;
     for (const q of SNOW.st) { const d = Math.hypot(q.lo * view.s + view.ox - px, -mercY(q.la) * view.s + view.oy - py); if (d < bd) { bd = d; bi = q; } }
-    if (bi) { setHover(-1); showTip(px, py, tipHTML({ title: bi.n, sub: `${bi.c} · ${fmt(bi.z)} m · SLF`, rows: [["Snow depth", `${Math.round(bi.hs)} cm`], ...(bi.ta != null ? [["Air temperature", `${sgn(bi.ta)} °C`]] : []), ["Measured", `${new Date(bi.t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`]] })); return; }
+    if (bi) { setHover(-1); showTip(px, py, tipHTML({ title: bi.n, sub: `${bi.c} · ${fmt(bi.z)} m · SLF`, chip: { text: `${snowClass(bi.hs).n} cm class`, col: snowClass(bi.hs).c, on: snowClass(bi.hs).t }, rows: [["Snow depth", `${Math.round(bi.hs)} cm`], ...(bi.ta != null ? [["Air temperature", `${sgn(bi.ta)} °C`]] : []), ["Measured", `${new Date(bi.t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`]] })); return; }
   }
   if (iceMode === "off") { setHover(-1); $("tip").hidden = true; return; }
   const wxp = (px - view.ox) / view.s, wyp = (py - view.oy) / view.s, cellPx = D.d * view.s;
@@ -906,7 +924,8 @@ async function refreshLive() {
   try { await loadObs(); buildStationSource(); if (N && sel.kind === "now") applySelection(); } catch (e) { console.warn(e); }
 }
 async function start() {
-  readColors(); document.querySelectorAll(".dp").forEach(buildPicker); renderNotes();
+  readColors(); document.querySelectorAll(".dp").forEach(buildPicker);
+  document.querySelector("#legSnow .swrow").innerHTML = SNOW_CLASSES.map(c => `<span><i class="sw" style="background:${c.c}"></i>${c.n}</span>`).join(""); renderNotes();
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColors(); drawHeat(); schedule(); });
   new MutationObserver(() => { readColors(); drawHeat(); schedule(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   new ResizeObserver(resize).observe($("mapbox"));
