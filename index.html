@@ -72,6 +72,7 @@ canvas.drag { cursor: grabbing; }
 .zoom button, .stbtn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer; }
 .zoom button { width: 34px; height: 34px; font: 500 18px/1 var(--font-body); }
 .stbtn { position: absolute; left: 10px; top: 10px; padding: 6px 11px; font-size: 13px; font-weight: 500; }
+.stnote { position: absolute; left: 10px; top: 46px; font-size: 12px; color: var(--ink-2); background: color-mix(in srgb, var(--panel) 88%, transparent); border-radius: 4px; padding: 2px 7px; }
 .stbtn[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
 .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; font-size: 12.5px; line-height: 1.4; box-shadow: 0 4px 14px rgb(0 0 0 / 0.14); z-index: 3; max-width: 250px; }
 .legend { position: absolute; left: 10px; bottom: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font-size: 12.5px; display: grid; gap: 3px; }
@@ -157,6 +158,7 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
       <canvas id="cv" aria-label="Map of Swiss glaciers coloured by whether they lie below the 0 degree line"></canvas>
       <div class="loading" id="loading">Loading 1.4 million glacier cells…</div>
       <button class="stbtn" id="stbtn" aria-pressed="false">Stations</button>
+      <div class="stnote" id="stnote" hidden></div>
       <div class="zoom">
         <button id="zin" aria-label="Zoom in">+</button>
         <button id="zout" aria-label="Zoom out">−</button>
@@ -344,15 +346,15 @@ async function loadModels() {
         d = await r.json(); break;
       }
       if (!d) continue; d = Array.isArray(d) ? d : [d];
-      const Zm = [], err = [], rep = [];
+      const Zm = [], err = [], rep = [], tSt = new Float32Array(ST.length).fill(NaN);
       idx.forEach((i, a) => {
         const h = d[a].hourly, t2 = h.temperature_2m[hr], fl = h.freezing_level_height ? h.freezing_level_height[hr] : null; if (t2 == null) return;
-        const zi = d[a].elevation + t2 / g; Zm.push(zi); err.push(-g * (ST[i].z - zi) - obsNow.t[i]);
+        const zi = d[a].elevation + t2 / g; Zm.push(zi); err.push(-g * (ST[i].z - zi) - obsNow.t[i]); tSt[i] = err[err.length - 1] + obsNow.t[i];
         if (fl != null) rep.push(-g * (ST[i].z - fl) - obsNow.t[i]);
       });
       if (Zm.length < 8) continue;
       const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
-      sources.push({ id, name, field: lattice(Zm, idx.map(i => ST[i])), g, bias: mean(err), rmse: Math.sqrt(mean(err.map(e => e * e))), rep: rep.length ? mean(rep) : null });
+      sources.push({ id, name, tSt, field: lattice(Zm, idx.map(i => ST[i])), g, bias: mean(err), rmse: Math.sqrt(mean(err.map(e => e * e))), rep: rep.length ? mean(rep) : null });
     } catch (e) { console.warn(id, e); }
     await new Promise(r => setTimeout(r, 600));
   }
@@ -375,9 +377,9 @@ async function loadDayModels() {
     let ok = false;
     try {
       let d = await fetchJSON(url); if (d) {
-        d = Array.isArray(d) ? d : [d]; const Zm = [], err = [];
-        idx.forEach((i, a) => { const h = (d[a].hourly.temperature_2m || []).filter(v => v != null); if (h.length < 20) return; const zi = d[a].elevation + mean(h) / g; Zm.push(zi); err.push(-g * (ST[i].z - zi) - TS[i * ND + k]); });
-        if (Zm.length >= 8) { ds.list.push({ name, z: mean(Zm), g, bias: mean(err), rmse: Math.sqrt(mean(err.map(e => e * e))) }); ok = true; }
+        d = Array.isArray(d) ? d : [d]; const Zm = [], err = [], tSt = new Float32Array(ST.length).fill(NaN);
+        idx.forEach((i, a) => { const h = (d[a].hourly.temperature_2m || []).filter(v => v != null); if (h.length < 20) return; const zi = d[a].elevation + mean(h) / g; Zm.push(zi); err.push(-g * (ST[i].z - zi) - TS[i * ND + k]); tSt[i] = err[err.length - 1] + TS[i * ND + k]; });
+        if (Zm.length >= 8) { ds.list.push({ name, tSt, z: mean(Zm), g, bias: mean(err), rmse: Math.sqrt(mean(err.map(e => e * e))) }); ok = true; }
       }
     } catch (e) { console.warn(name, e); }
     if (!ok) ds.missing.push(name.replace(/ \(.*\)/, ""));
@@ -438,7 +440,7 @@ function renderAll() {
   $("lead").innerHTML = `of Swiss glacier area lies below the 0 °C line, about <b>${fmt(c.km)}</b> of ${fmt(total)} km².` + (active === 0 || sel.kind === "day" ? ` With the line ±${fmt(c.sig)} m: ${hi < 0.0005 ? "still none of it" : lo > 0.9995 ? "still all of it" : `${pf(lo)}–${pf(hi)}%`}.` : "");
   const when = sel.kind === "day" ? `daily mean of ${dayLabel(sel.k)}` : `${sources[active].name}, ${new Date(obsNow.time).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`;
   $("meta").innerHTML = `0 °C line over the glaciers: <b>${fmt(c.z)} m</b> on average (${when})` + (offset ? `, raised by ${fmt(offset)} m.` : ".");
-  renderVerdict(c); renderList(); renderSources(); drawProfile(c); markHeat();
+  renderVerdict(c); renderList(); renderSources(); drawProfile(c); markHeat(); updateStationNote();
 }
 
 /* ---------- verdict banner ---------- */
@@ -638,7 +640,7 @@ $("vdate").addEventListener("change", e => {
   enterDay(k); applySelection();
 });
 $("loadmodels").onclick = () => sel.kind === "day" ? loadDayModels() : loadModels();
-$("stbtn").onclick = () => { showStations = !showStations; $("stbtn").setAttribute("aria-pressed", showStations); schedule(); };
+$("stbtn").onclick = () => { showStations = !showStations; $("stbtn").setAttribute("aria-pressed", showStations); updateStationNote(); schedule(); };
 let tInfo = 0; const off = $("off");
 off.addEventListener("input", () => { offset = +off.value; $("offout").textContent = "+" + fmt(offset) + " m"; $("reset").disabled = offset === 0; recount(); renderAll(); schedule(); clearTimeout(tInfo); tInfo = setTimeout(() => { computeInfo(); renderSources(); }, 250); });
 $("reset").onclick = () => { off.value = 0; off.dispatchEvent(new Event("input")); };
@@ -652,7 +654,13 @@ function resize() {
   if (first) fit(); schedule();
 }
 function schedule() { if (!raf) raf = requestAnimationFrame(draw); }
-function stationValue(i) { return sel.kind === "day" ? TS[i * ND + sel.k] : obsNow.t[i]; }
+const measured = i => sel.kind === "day" ? TS[i * ND + sel.k] : obsNow.t[i];
+const shownSource = () => sel.kind === "day" ? daySrc.list[dayActive] : sources[active];
+function stationValue(i) { const S = shownSource(); return S && S.tSt ? S.tSt[i] : measured(i); }
+function updateStationNote() {
+  const n = $("stnote"), S = shownSource(); n.hidden = !showStations;
+  n.textContent = S && S.tSt ? `Temperatures from ${S.name.replace(/ \(.*\)/, "")}, at station height` : sel.kind === "day" ? "Measured daily means" : "Measured now";
+}
 function draw() {
   raf = 0; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = colors.map; ctx.fillRect(0, 0, W, H);
   const { s, ox, oy } = view; ctx.beginPath();
@@ -703,8 +711,10 @@ function hover(px, py) {
     let bi = -1, bd = 12;
     ST.forEach((st, i) => { const d = Math.hypot(st.lo * COS * view.s + view.ox - px, -st.la * view.s + view.oy - py); if (d < bd) { bd = d; bi = i; } });
     if (bi >= 0) {
-      const st = ST[bi], v = stationValue(bi), g = sel.kind === "day" ? dayG[sel.k] : sources[0].g;
-      showTip(px, py, `<b>${esc(st.n)}</b> <span style="color:var(--ink-2)">${st.a} · ${fmt(st.z)} m</span><br>` + (Number.isNaN(v) ? "No reading" : `${sel.kind === "day" ? "Daily mean" : "Now"}: <b>${v.toFixed(1)} °C</b><br>Implies 0 °C at ${fmt(st.z + v / g)} m`)); return;
+      const st = ST[bi], v = stationValue(bi), m = measured(bi), S = shownSource(), g = sel.kind === "day" ? dayG[sel.k] : sources[0].g, modelled = S && S.tSt, sg = (n) => (n < 0 ? "−" : "") + Math.abs(n).toFixed(1);
+      showTip(px, py, `<b>${esc(st.n)}</b> <span style="color:var(--ink-2)">${st.a} · ${fmt(st.z)} m</span><br>` + (Number.isNaN(v) ? "No reading" :
+        `${modelled ? esc(S.name.replace(/ \(.*\)/, "")) : sel.kind === "day" ? "Daily mean" : "Now"}: <b>${sg(v)} °C</b><br>` +
+        (modelled && !Number.isNaN(m) ? `Measured: ${sg(m)} °C (model ${v - m >= 0 ? "+" : "−"}${Math.abs(v - m).toFixed(1)})<br>` : "") + `Implies 0 °C at ${fmt(st.z + v / g)} m`)); return;
     }
   }
   const wxp = (px - view.ox) / view.s, wyp = (py - view.oy) / view.s, cellPx = D.d * COS * view.s;
