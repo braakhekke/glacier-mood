@@ -109,6 +109,11 @@ canvas.drag { cursor: grabbing; }
 .mapbox.is3d .mapctl { max-width: calc(100% - 170px); }
 .stbtn { padding: 7px 14px; font-size: 14px; border-radius: 999px; }
 .stbtn[aria-pressed="true"] { background: var(--sun); color: #0c2340; }
+.icectl { display: inline-flex; align-items: center; gap: 6px; }
+.icelbl { font: 700 13px var(--font-body); background: color-mix(in srgb, var(--panel) 90%, transparent); border-radius: 999px; padding: 3px 9px; }
+.mapctl .seg { margin: 0; box-shadow: 2px 2px 0 var(--shadow); }
+.mapctl .seg button { padding: 5px 11px; }
+.mapbox.ice-outline .legend, .mapbox.ice-off .legend { display: none; }
 .whenlbl { font-weight: 600; }
 .dp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
 .dpb { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--edge); background: var(--panel); font: 800 17px/1 var(--font-body); padding: 0; cursor: pointer; box-shadow: 2px 2px 0 var(--shadow); transition: transform .08s, box-shadow .08s; }
@@ -217,7 +222,7 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
         <canvas id="cv" aria-label="Map of Swiss glaciers coloured by whether they sit below the freezing line"></canvas>
         <div class="view3d" id="view3d" hidden><div class="ctl3d"><label for="exag">Height <output id="exagout" for="exag">1.5×</output></label><input id="exag" type="range" min="1" max="4" step="0.25" value="1.5"></div><p class="note3d" id="note3d"></p></div>
         <div class="loading" id="loading">Counting 1.4 million bits of ice…</div>
-        <div class="mapctl"><button class="stbtn" id="stbtn" aria-pressed="false">Stations</button><button class="stbtn" id="snbtn" aria-pressed="false" hidden>Snow</button><button class="stbtn" id="b3d" aria-pressed="false">3D</button><label class="bgpick selwrap"><span class="sr">Map style</span><select id="bgsel" class="sel"><option value="grey">Grey map</option><option value="sat">Satellite (Sentinel-2)</option><option value="aerial">Aerial (SWISSIMAGE)</option></select></label><span class="dp dpmap" id="dpMap"></span>
+        <div class="mapctl"><button class="stbtn" id="stbtn" aria-pressed="false">Stations</button><button class="stbtn" id="snbtn" aria-pressed="false" hidden>Snow</button><button class="stbtn" id="b3d" aria-pressed="false">3D</button><label class="bgpick selwrap"><span class="sr">Map style</span><select id="bgsel" class="sel"><option value="grey">Grey map</option><option value="sat">Satellite (Sentinel-2)</option><option value="aerial">Aerial (SWISSIMAGE)</option></select></label><span class="icectl"><span class="icelbl">Glaciers</span><span class="seg" id="icemode" role="group" aria-label="Show glaciers as colour, outline or hide them"><button data-ice="fill" aria-pressed="true">Colour</button><button data-ice="outline" aria-pressed="false">Outline</button><button data-ice="off" aria-pressed="false">Hide</button></span></span><span class="dp dpmap" id="dpMap"></span>
         <div class="imgnote" id="imgnote" hidden><button id="imgprev" aria-label="Older image" hidden>◀</button><span id="imgtxt"></span><button id="imgnext" aria-label="Newer image" hidden>▶</button></div></div>
         <div class="zoom">
           <button id="zin" aria-label="Zoom in">+</button>
@@ -300,7 +305,7 @@ let HIST, ST = [], START, ND = 0, TS;                 // station list, history s
 let dayZ, dayG, dayN, dayShare;                       // per-day 0 °C height, cooling rate, station count, share of ice below
 let D, N, wx, wy, cz, cg, Zc, glaciers, total, cdf;
 let li0, lfx, lfy, rowY, rowStart, gx;
-let GL = null, GLINFO = null, SNOW = null, showSnow = false;   // SNOW: latest snow depths from SLF's IMIS stations   // GL: yearly Swiss ice volume change (GLAMOS)
+let GL = null, GLINFO = null, SNOW = null, showSnow = false, iceMode = "fill";   // iceMode: glaciers as colour, as outline only, or hidden   // SNOW: latest snow depths from SLF's IMIS stations   // GL: yearly Swiss ice volume change (GLAMOS)
 let sel = { kind: "now" }, station = null, obsNow = null, liveOk = false, showStations = false;
 let colors = {}, packed = {}, hoverG = -1, clickStart = null;
 function setHover(g) { if (g === hoverG) return; hoverG = g; cv.style.cursor = g >= 0 ? "pointer" : ""; schedule(); }
@@ -707,6 +712,12 @@ function goDate(y, m, d) {
 document.addEventListener("change", e => { const h = e.target.closest && e.target.closest(".dp"); if (!h || !e.target.dataset.f) return; const v = f => +h.querySelector(`[data-f="${f}"]`).value; goDate(v("y"), v("m"), v("d")); });
 document.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".dpb"); if (!b) return; const t = currentDate(); goDate(t.y, t.m, t.d + (+b.dataset.step)); });
 $("bgsel").onchange = e => { BG.mode = e.target.value; updateImageryNote(); schedule(); schedule3D(); };
+$("icemode").addEventListener("click", e => {
+  const b = e.target.closest("[data-ice]"); if (!b) return; iceMode = b.dataset.ice;
+  $("icemode").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  const mb = $("mapbox"); mb.classList.toggle("ice-outline", iceMode === "outline"); mb.classList.toggle("ice-off", iceMode === "off");
+  setHover(-1); $("tip").hidden = true; schedule(); schedule3D();
+});
 $("b3d").onclick = () => set3D(!V3.on);
 $("exag").oninput = e => { V3.exag = +e.target.value; $("exagout").textContent = V3.exag + "×"; if (V3.terrain) { placeTerrain(); placePlane(); } };
 $("imgprev").onclick = () => { if (satStep(1)) { updateImageryNote(); schedule(); } };
@@ -745,33 +756,38 @@ async function loadOutlines() {
   try {
     const j = await (await fetch("outlines.json")).json(), U = j.u;
     OUT = j.rings.map(r => {
-      const n = r.length / 2, p = new Float32Array(r.length); let x = r[0], y = r[1], x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-      for (let i = 0; i < n; i++) { if (i) { x += r[2 * i]; y += r[2 * i + 1]; } const a = x / U, b = -mercY(y / U); p[2 * i] = a; p[2 * i + 1] = b; if (a < x0) x0 = a; if (a > x1) x1 = a; if (b < y0) y0 = b; if (b > y1) y1 = b; }
-      return { p, x0, x1, y0, y1 };
+      const g = r[0], n = (r.length - 1) / 2, p = new Float32Array(2 * n); let x = r[1], y = r[2], x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+      for (let i = 0; i < n; i++) { if (i) { x += r[1 + 2 * i]; y += r[2 + 2 * i]; } const a = x / U, b = -mercY(y / U); p[2 * i] = a; p[2 * i + 1] = b; if (a < x0) x0 = a; if (a > x1) x1 = a; if (b < y0) y0 = b; if (b > y1) y1 = b; }
+      return { g, p, x0, x1, y0, y1 };
     });
     schedule();
   } catch (e) { console.warn("outlines", e); }
 }
 function drawOutlines() {
-  const { s, ox, oy } = view, lx0 = -ox / s, lx1 = (W - ox) / s, ly0 = -oy / s, ly1 = (H - oy) / s;
-  ctx.beginPath();
-  for (const r of OUT) {
-    if (r.x1 < lx0 || r.x0 > lx1 || r.y1 < ly0 || r.y0 > ly1) continue;
-    const p = r.p; ctx.moveTo(p[0] * s + ox, p[1] * s + oy);
-    for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i] * s + ox, p[i + 1] * s + oy);
-  }
-  ctx.lineWidth = 1; ctx.lineJoin = "round"; ctx.strokeStyle = colors.ink; ctx.globalAlpha = 0.75; ctx.stroke(); ctx.globalAlpha = 1;
+  const { s, ox, oy } = view, lx0 = -ox / s, lx1 = (W - ox) / s, ly0 = -oy / s, ly1 = (H - oy) / s, o = iceMode === "outline";
+  const pass = (only, width, alpha) => {
+    ctx.beginPath();
+    for (const r of OUT) {
+      if (only >= 0 ? r.g !== only : false) continue;
+      if (r.x1 < lx0 || r.x0 > lx1 || r.y1 < ly0 || r.y0 > ly1) continue;
+      const p = r.p; ctx.moveTo(p[0] * s + ox, p[1] * s + oy);
+      for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i] * s + ox, p[i + 1] * s + oy);
+    }
+    ctx.lineWidth = width; ctx.lineJoin = "round"; ctx.strokeStyle = colors.ink; ctx.globalAlpha = alpha; ctx.stroke(); ctx.globalAlpha = 1;
+  };
+  if (o || s > 2200) pass(-1, o ? 1.8 : 1, o ? 0.95 : 0.75);
+  if (hoverG >= 0) pass(hoverG, 3, 1);
 }
 function draw() {
   raf = 0; if (V3.on) return; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = colors.map; ctx.fillRect(0, 0, W, H);
   const { s, ox, oy } = view; ctx.beginPath();
   BORDERW.forEach(([lo, la], i) => { const x = lo * s + ox, y = la * s + oy; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath();
   ctx.fillStyle = colors.panel; ctx.fill(); paintBackground(ctx, view, W, H, dpr, { onLoad: schedule, dark: colors.isDark, targetMs: targetMs() }); if (BG.mode === "sat") satEnsure(targetMs(), view, W, H, dpr, () => { updateImageryNote(); schedule(); }); ctx.strokeStyle = colors.border; ctx.lineWidth = 1.5; ctx.stroke();
-  if (N) splat(); ctx.setTransform(1, 0, 0, 1, 0, 0); if (N) { ctx.globalAlpha = BG.mode === "grey" ? 1 : 0.6; ctx.drawImage(layer, 0, 0); ctx.globalAlpha = 1; } ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (OUT && s > 2200) drawOutlines();
+  const showCells = N && (iceMode === "fill" || (iceMode === "outline" && hoverG >= 0)); if (showCells) splat(); ctx.setTransform(1, 0, 0, 1, 0, 0); if (showCells) { ctx.globalAlpha = BG.mode === "grey" ? 1 : 0.6; ctx.drawImage(layer, 0, 0); ctx.globalAlpha = 1; } ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (OUT && iceMode !== "off") drawOutlines();
   ctx.font = "500 11px " + FONT; ctx.textBaseline = "middle";
   for (const [name, la, lo] of CITIES) { const x = lo * s + ox, y = -mercY(la) * s + oy; ctx.fillStyle = colors["ink-2"]; ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 7); ctx.fill(); label(name, x + 6, y, colors["ink-2"]); }
-  if (N && s > 620) for (const g of glaciers) if (g.name && g.area > (s > 1725 ? 3 : 15)) { const x = (g.x0 + g.x1) / 2 * s + ox, y = (g.y0 + g.y1) / 2 * s + oy; if (x > 0 && y > 0 && x < W && y < H) label(g.name.replace("gletscher", "gl."), x, y, colors.ink, true); }
+  if (N && s > 620 && iceMode !== "off") for (const g of glaciers) if (g.name && g.area > (s > 1725 ? 3 : 15)) { const x = (g.x0 + g.x1) / 2 * s + ox, y = (g.y0 + g.y1) / 2 * s + oy; if (x > 0 && y > 0 && x < W && y < H) label(g.name.replace("gletscher", "gl."), x, y, colors.ink, true); }
   if (showStations && ST.length && (obsNow || sel.kind === "day")) ST.forEach((st, i) => {
     const x = st.lo * s + ox, y = -mercY(st.la) * s + oy; if (x < -40 || y < -10 || x > W + 40 || y > H + 10) return;
     const v = measured(i), has = !Number.isNaN(v);
@@ -788,8 +804,9 @@ function draw() {
   ctx.textAlign = "right"; ctx.font = "500 11px " + FONT; label("50 km", bx + km, by - 9, colors.ink); ctx.font = "500 10px " + FONT; label("© swisstopo", W - 8, H - 4, colors["ink-2"]); ctx.textAlign = "left";
 }
 function splat() {
-  lbuf.fill(0); const { s, ox, oy } = view, k = s * dpr, X0 = ox * dpr, Y0 = oy * dpr, cw = D.d * k, ch = D.d * MC * k, PW = layer.width, PH = layer.height, M = packed.melt, I = packed.ice, MH = packed.meltHi, IH = packed.iceHi, hg = hoverG;
+  lbuf.fill(0); const { s, ox, oy } = view, k = s * dpr, X0 = ox * dpr, Y0 = oy * dpr, cw = D.d * k, ch = D.d * MC * k, PW = layer.width, PH = layer.height, M = packed.melt, I = packed.ice, MH = packed.meltHi, IH = packed.iceHi, hg = hoverG, only = iceMode === "outline" ? hoverG : -1;   // outline mode paints just the glacier under the pointer
   for (let i = 0; i < N; i++) {
+    if (only >= 0 ? cg[i] !== only : (iceMode === "fill" && cg[i] === hg)) continue;   // outline mode: paint only the hovered glacier; colour mode: leave the hovered glacier clear
     const x = wx[i] * k + X0, y = wy[i] * k + Y0; if (x < -cw || y < -ch || x >= PW || y >= PH) continue;
     const melt = cz[i] < Zc[i], hi = cg[i] === hg, c = melt ? (hi ? MH : M) : (hi ? IH : I), px0 = Math.max(Math.floor(x), 0), py0 = Math.max(Math.floor(y), 0), px1 = Math.min(Math.max(px0 + 1, Math.ceil(x + cw)), PW), py1 = Math.min(Math.max(py0 + 1, Math.ceil(y + ch)), PH);
     for (let py = py0; py < py1; py++) for (let p = py * PW + px0, e = py * PW + px1; p < e; p++) if (melt || (lbuf[p] !== M && lbuf[p] !== MH)) lbuf[p] = c;
@@ -840,6 +857,7 @@ function hover(px, py) {
     for (const q of SNOW.st) { const d = Math.hypot(q.lo * view.s + view.ox - px, -mercY(q.la) * view.s + view.oy - py); if (d < bd) { bd = d; bi = q; } }
     if (bi) { setHover(-1); showTip(px, py, `<b>${esc(bi.n)}</b> <span style="color:var(--ink-2)">${bi.c} · ${fmt(bi.z)} m · SLF</span><br>Snow depth: <b>${Math.round(bi.hs)} cm</b>` + (bi.ta != null ? `<br>Air: ${bi.ta.toFixed(1)} °C` : "") + `<br><span style="color:var(--ink-2)">measured ${new Date(bi.t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC</span>`); return; }
   }
+  if (iceMode === "off") { setHover(-1); $("tip").hidden = true; return; }
   const wxp = (px - view.ox) / view.s, wyp = (py - view.oy) / view.s, cellPx = D.d * view.s;
   {   // nearest ice cell within a few pixels, at any zoom
     const gxp = (wxp - D.lon0) / D.d, gyp = (D.lat0 - invMerc(-wyp)) / D.d, R = Math.min(200, Math.ceil(7 / cellPx)); let best = -1, bd = 1e9;

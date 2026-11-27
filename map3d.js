@@ -1,6 +1,6 @@
 /* 3D view: Mapterhorn terrain (open terrain tiles, read from a PMTiles archive), the chosen picture draped on it, glacier colours on top,
    and the freezing line as a translucent sheet. It shows the same area as the 2D map had on screen when 3D was switched on.
-   Uses globals from index.html (view, W, H, D, wx, wy, cz, Zc, station, dayZ, sel, packed, colors, OUT, BORDERW, ...) only when functions run. */
+   Uses globals from index.html (view, W, H, D, wx, wy, cz, Zc, station, dayZ, sel, packed, colors, iceMode, OUT, BORDERW, ...) only when functions run. */
 
 const V3 = { on: false, looping: false, libs: null, pm: null, region: null, gen: 0, timer: 0, exag: 1.5 };
 const MPD = 111319.49;   // metres per degree at the equator: scene units are web-mercator metres
@@ -71,8 +71,8 @@ async function paintTexture(reg, gen) {   // picture + glacier colours, in the s
   }
   if (gen !== V3.gen) return null;
   paintBackground(c, v, TW, TH, 1, info);
-  c.globalAlpha = 0.68; c.drawImage(cellsCanvas(v, TW, TH), 0, 0); c.globalAlpha = 1;
-  if (OUT) { c.beginPath(); for (const r of OUT) { const p = r.p; c.moveTo(p[0] * v.s + v.ox, p[1] * v.s + v.oy); for (let i = 2; i < p.length; i += 2) c.lineTo(p[i] * v.s + v.ox, p[i + 1] * v.s + v.oy); } c.lineWidth = Math.max(1, TW / 1800); c.strokeStyle = colors.ink; c.globalAlpha = 0.7; c.stroke(); c.globalAlpha = 1; }
+  if (iceMode === "fill") { c.globalAlpha = 0.68; c.drawImage(cellsCanvas(v, TW, TH), 0, 0); c.globalAlpha = 1; }
+  if (OUT && iceMode !== "off") { c.beginPath(); for (const r of OUT) { const p = r.p; c.moveTo(p[0] * v.s + v.ox, p[1] * v.s + v.oy); for (let i = 2; i < p.length; i += 2) c.lineTo(p[i] * v.s + v.ox, p[i + 1] * v.s + v.oy); } c.lineWidth = Math.max(iceMode === "outline" ? 1.8 : 1, TW / (iceMode === "outline" ? 1100 : 1800)); c.strokeStyle = colors.ink; c.globalAlpha = iceMode === "outline" ? 0.95 : 0.7; c.stroke(); c.globalAlpha = 1; }
   return cvs;
 }
 
