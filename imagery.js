@@ -81,7 +81,7 @@ async function satFind(targetMs, bbox) {   // all mosaics near the date that cov
 }
 async function satFile(url) {   // opens the GeoTIFF once; its overviews are the other images in the file
   let f = SAT.files.get(url);
-  if (!f) { f = (async () => { const G = await satLibs(), tiff = await G.fromUrl(url), n = await tiff.getImageCount(), imgs = []; for (let i = 0; i < n; i++) imgs.push(await tiff.getImage(i)); return imgs; })(); SAT.files.set(url, f); }
+  if (!f) { f = (async () => { const G = await satLibs(), tiff = await G.fromUrl(url), n = await tiff.getImageCount(), imgs = []; for (let i = 0; i < n; i++) imgs.push(await tiff.getImage(i)); return imgs; })(); f.catch(() => SAT.files.delete(url)); SAT.files.set(url, f); }
   return f;
 }
 async function satWin(url, bbox, maxPx, kFixed) {   // one band over a box: values + where they sit (LV95); picks the overview so the box is at most maxPx wide, or uses kFixed
@@ -185,16 +185,21 @@ async function satEnsure(targetMs, v, w, h, px, onReady) {   // finds the mosaic
   const gpp = 111320 * Math.cos(46.4 * RAD) / (v.s * px), rkey = `${it.id}|${bbox.map(q => q.toFixed(3)).join(",")}|${Math.round(Math.log2(gpp))}`;
   const days = Math.round((it.t - targetMs) / 864e5);
   SAT.status = `Sentinel-2${it.cloud != null ? `, ${Math.round(it.cloud)}% cloud` : ""}, ${new Date(it.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })} (${days === 0 ? "same day" : Math.abs(days) + (Math.abs(days) === 1 ? " day " : " days ") + (days < 0 ? "before" : "after")})`;
-  const needRaster = BG.mode === "sat" && SAT.key !== rkey, skey = `${it.id}|${bbox.map(q => q.toFixed(2)).join(",")}`, needSurf = iceMode === "surface" && SURF.key !== skey;
+  const label = SAT.status, needRaster = BG.mode === "sat" && SAT.key !== rkey, skey = `${it.id}|${bbox.map(q => q.toFixed(2)).join(",")}`, needSurf = iceMode === "surface" && SURF.key !== skey;
   if (!needRaster && !needSurf) return;
-  SAT.busy = true;
-  try {
-    if (needRaster) {   // read a box 30% larger than the view so small pans do not need a new download
-      const pad = 0.3, bw = (bbox[2] - bbox[0]) * pad, bh = (bbox[3] - bbox[1]) * pad;
-      SAT.raster = await satRead(it, [bbox[0] - bw, bbox[1] - bh, bbox[2] + bw, bbox[3] + bh], gpp); SAT.key = rkey;
-    }
-    if (needSurf) await surfaceBuild(it, bbox, skey);
-  } catch (e) { console.warn("s2", e); SAT.status = "Could not read the Sentinel-2 image"; if (needRaster) SAT.raster = null; }
+  SAT.busy = true; SAT.status = "Loading satellite image…"; onReady();
+  let failed = false;
+  for (let attempt = 0; attempt < 2; attempt++) {   // a second try covers a dropped request
+    try {
+      if (needRaster) {   // read a box 30% larger than the view so small pans do not need a new download
+        const pad = 0.3, bw = (bbox[2] - bbox[0]) * pad, bh = (bbox[3] - bbox[1]) * pad;
+        SAT.raster = await satRead(it, [bbox[0] - bw, bbox[1] - bh, bbox[2] + bw, bbox[3] + bh], gpp); SAT.key = rkey;
+      }
+      if (needSurf) await surfaceBuild(it, bbox, skey);
+      failed = false; break;
+    } catch (e) { failed = true; console.warn("s2", e); }
+  }
+  SAT.status = failed && !SAT.pending ? label + " (could not be loaded, try again)" : label;   // the last good picture stays on the map
   SAT.busy = false; onReady();
   if (SAT.pending) { const f = SAT.pending; SAT.pending = null; f(); }
 }
