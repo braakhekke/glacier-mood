@@ -1,0 +1,6 @@
+.DS_Store
+__pycache__/
+scripts/hist_T.npy
+scripts/hist_meta.json
+scripts/sgi23/
+scripts/*.zip

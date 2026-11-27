@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Glacier Zero Line</title>
+<meta name="description" content="Is today a good or bad day for Swiss glaciers? The 0 °C line from live MeteoSwiss stations, mapped over every glacier, with history back to 1993.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: verdict banner on top, then map + reading column, then history. Warm = ice below the 0 °C line (air above freezing), cool = ice above it. */
+:root {
+  color-scheme: light;
+  --bg: #f3f5f7; --panel: #ffffff; --ink: #14202b; --ink-2: #4b5b69; --line: #d5dce2;
+  --map: #e6ebef; --border: #8fa1b0; --heat0: #e9eef2;
+  --melt: #d9480f; --ice: #2f6fb3; --ice-soft: #b9d3ea; --sel: #e8f0f8;
+  --font-head: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0e151c; --panel: #16202a; --ink: #e8eef3; --ink-2: #9fb0be; --line: #2a3845;
+    --map: #101a23; --border: #4a5d6d; --heat0: #1d2a35; --melt: #ff8a4c; --ice: #6fb0ec; --ice-soft: #2a4560; --sel: #1e2f3e;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e151c; --panel: #16202a; --ink: #e8eef3; --ink-2: #9fb0be; --line: #2a3845;
+  --map: #101a23; --border: #4a5d6d; --heat0: #1d2a35; --melt: #ff8a4c; --ice: #6fb0ec; --ice-soft: #2a4560; --sel: #1e2f3e;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--font-body); padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+a { color: var(--ice); }
+[hidden] { display: none !important; }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+h1 { font: 600 15px/1.2 var(--font-head); margin: 0; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+h2 { font: 600 13px/1.2 var(--font-head); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-2); margin: 0 0 10px; }
+button { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+
+/* verdict banner */
+.verdict { --tier: var(--ice); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; border-top: 6px solid var(--tier); }
+.verdict .top { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.when { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+.when input[type=date] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
+.chip { border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 3px 9px; cursor: pointer; font-size: 13px; }
+.chip[disabled] { opacity: 0.45; cursor: default; }
+.live { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ice); display: inline-block; }
+.live.off i { background: var(--ink-2); opacity: .6; }
+.tag { display: inline-block; font: 600 12px/1 var(--font-head); letter-spacing: 0.1em; text-transform: uppercase; color: #fff; background: var(--tier); padding: 6px 9px; border-radius: 4px; }
+:root[data-theme="dark"] .tag { color: #0e151c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tag { color: #0e151c; } }
+.verdict h2.title { font: 600 clamp(28px, 4.6vw, 46px)/1.08 var(--font-head); letter-spacing: -0.015em; text-transform: none; color: var(--ink); margin: 12px 0 8px; text-wrap: balance; }
+.verdict .msg { margin: 0; font-size: 17px; max-width: 58ch; }
+.verdict .ctx { margin: 8px 0 0; color: var(--ink-2); font-size: 14px; max-width: 64ch; }
+.meter { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 16px; max-width: 460px; }
+.meter span { font-size: 11px; text-align: center; padding-top: 6px; color: var(--ink-2); border-top: 6px solid var(--c); opacity: 0.35; }
+.meter span.on { opacity: 1; color: var(--ink); font-weight: 600; }
+.profile { min-width: 0; }
+.profile svg { width: 100%; height: auto; display: block; }
+.profile .cap { font-size: 12px; color: var(--ink-2); margin: 4px 0 0; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+.leftcol { display: grid; gap: 14px; min-width: 0; }
+.mapbox { position: relative; background: var(--map); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; aspect-ratio: 1.45; min-height: 320px; }
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; display: block; }
+canvas.drag { cursor: grabbing; }
+.zoom { position: absolute; right: 10px; top: 10px; display: grid; gap: 4px; }
+.zoom button, .stbtn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer; }
+.zoom button { width: 34px; height: 34px; font: 500 18px/1 var(--font-body); }
+.stbtn { position: absolute; left: 10px; top: 10px; padding: 6px 11px; font-size: 13px; font-weight: 500; }
+.stbtn[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; font-size: 12.5px; line-height: 1.4; box-shadow: 0 4px 14px rgb(0 0 0 / 0.14); z-index: 3; max-width: 250px; }
+.legend { position: absolute; left: 10px; bottom: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font-size: 12.5px; display: grid; gap: 3px; }
+.legend span { display: flex; align-items: center; gap: 7px; }
+.sw { width: 11px; height: 11px; border-radius: 2px; flex: none; display: inline-block; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-2); font-size: 14px; }
+.side { display: grid; gap: 14px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+.big { font: 600 clamp(48px, 7vw, 64px)/1 var(--font-head); color: var(--melt); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.big small { font-size: 0.45em; margin-left: 2px; }
+.lead { margin: 6px 0 0; }
+.meta { margin: 10px 0 0; color: var(--ink-2); font-size: 13px; }
+.meta b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.what { display: grid; gap: 8px; }
+.what label { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.what output { font-variant-numeric: tabular-nums; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: var(--melt); }
+.reset { justify-self: start; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+.reset[disabled] { opacity: 0.45; cursor: default; }
+ul.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+#list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
+@media (max-width: 600px) { #list { grid-template-columns: minmax(0, 1fr); } }
+ul.list button { all: unset; box-sizing: border-box; display: grid; gap: 3px; width: 100%; padding: 7px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+ul.list button:hover { background: var(--bg); }
+ul.list button[aria-pressed="true"] { background: var(--sel); border-color: var(--line); }
+ul.list button:focus-visible { outline: 2px solid var(--ice); }
+.row { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.row span:last-child { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.row2 { font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 3px; background: var(--ice-soft); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--melt); }
+.hint { font-size: 12.5px; color: var(--ink-2); margin: 10px 0 0; }
+.models { margin-top: 8px; }
+
+/* history */
+.hist { display: grid; gap: 14px; }
+.hist .strip { position: relative; }
+.hist canvas { position: static; cursor: crosshair; width: 100%; height: auto; touch-action: manipulation; }
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart h3 { font: 600 14px/1.3 var(--font-body); margin: 0 0 2px; }
+.chart p { margin: 0 0 6px; font-size: 12.5px; color: var(--ink-2); }
+.scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); flex-wrap: wrap; }
+.scale .ramp { width: 160px; height: 10px; border-radius: 2px; background: linear-gradient(90deg, var(--heat0), var(--melt)); }
+details.tbl { font-size: 13px; color: var(--ink-2); }
+details.tbl summary { cursor: pointer; }
+.tblwrap { overflow-x: auto; max-height: 260px; margin-top: 8px; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.notes { color: var(--ink-2); font-size: 12.5px; display: grid; gap: 6px; }
+.notes p { margin: 0; max-width: 100ch; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } .mapbox { aspect-ratio: 1.1; } .verdict { grid-template-columns: minmax(0, 1fr); } .charts { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Glacier Zero Line</h1>
+
+  <section class="verdict" id="verdict" aria-live="polite">
+    <div>
+      <div class="top">
+        <span class="tag" id="vtag">…</span>
+        <span class="when">
+          <label for="vdate">Showing</label>
+          <input type="date" id="vdate">
+          <button class="chip" id="vnow" disabled>Now</button>
+        </span>
+      </div>
+      <h2 class="title" id="vtitle">Reading the thermometers…</h2>
+      <p class="msg" id="vmsg"></p>
+      <p class="ctx" id="vctx"></p>
+      <div class="meter" id="vmeter"></div>
+      <p class="live off" id="vlive" style="margin:14px 0 0"><i></i><span>Connecting to MeteoSwiss…</span></p>
+    </div>
+    <div class="profile" id="vprof"></div>
+  </section>
+
+  <div class="main">
+    <div class="leftcol">
+    <div class="mapbox" id="mapbox">
+      <canvas id="cv" aria-label="Map of Swiss glaciers coloured by whether they lie below the 0 degree line"></canvas>
+      <div class="loading" id="loading">Loading 1.4 million glacier cells…</div>
+      <button class="stbtn" id="stbtn" aria-pressed="false">Stations</button>
+      <div class="zoom">
+        <button id="zin" aria-label="Zoom in">+</button>
+        <button id="zout" aria-label="Zoom out">−</button>
+        <button id="zfit" aria-label="Show all of Switzerland" style="font-size:13px">⤢</button>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--melt)"></i>Below the 0 °C line, exposed to melt</span>
+        <span><i class="sw" style="background:var(--ice)"></i>Above the line, below freezing</span>
+      </div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <section class="panel">
+        <h2>Largest glaciers</h2>
+        <ul class="list" id="list"></ul>
+    </section>
+    </div>
+
+    <div class="side">
+      <section class="panel" aria-live="polite">
+        <div class="big"><span id="pct">–</span><small>%</small></div>
+        <p class="lead" id="lead">Loading…</p>
+        <p class="meta" id="meta"></p>
+      </section>
+      <section class="panel" id="srcpanel">
+        <h2>Where is the 0 °C line?</h2>
+        <ul class="list" id="srcs"></ul>
+        <div class="models"><button class="chip" id="loadmodels">Compare with eight weather models</button></div>
+        <p class="hint" id="srchint"></p>
+      </section>
+      <section class="panel what">
+        <h2>Move the line</h2>
+        <label for="off"><span>Raise the 0 °C line by</span><output id="offout" for="off">+0 m</output></label>
+        <input id="off" type="range" min="0" max="3000" step="50" value="0">
+        <button class="reset" id="reset" disabled>Back to now</button>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel hist" id="hist">
+    <div>
+      <h2>Every day since 1993</h2>
+      <p class="hint" style="margin:0">Each cell is one day: how much of Switzerland's glacier ice lay below the 0 °C line (daily mean temperature, 15 MeteoSwiss stations above 2,000 m). Click a day to see it on the map.</p>
+    </div>
+    <div class="strip"><canvas id="heat" aria-label="Heat strip of the share of glacier ice below the zero degree line, one cell per day since 1993"></canvas><div class="tip" id="htip" hidden></div></div>
+    <div class="scale"><span>0%</span><span class="ramp"></span><span>100% of the ice below the line</span><span style="margin-left:12px"><i class="sw" style="background:repeating-linear-gradient(45deg,var(--line) 0 2px,transparent 2px 4px)"></i> no data</span></div>
+    <div class="charts">
+      <div class="chart" id="chA"></div>
+      <div class="chart" id="chB"></div>
+    </div>
+    <details class="tbl"><summary>Show the yearly numbers as a table</summary><div class="tblwrap" id="tbl"></div></details>
+  </section>
+
+  <div class="notes" id="notes"></div>
+</div>
+
+<script>
+const BORDER = [[10.4527,46.8636],[10.4491,46.8316],[10.4455,46.8231],[10.4167,46.7995],[10.4203,46.7843],[10.4275,46.7691],[10.4275,46.7556],[10.4167,46.7438],[10.3987,46.7353],[10.3951,46.7269],[10.3951,46.7015],[10.3843,46.6897],[10.3735,46.6813],[10.3699,46.6728],[10.3771,46.6526],[10.3951,46.6391],[10.4383,46.6357],[10.4599,46.6239],[10.4671,46.6036],[10.4671,46.5783],[10.4563,46.5529],[10.4527,46.5462],[10.4455,46.5377],[10.4275,46.5361],[10.3555,46.5479],[10.3195,46.5462],[10.3051,46.5479],[10.2943,46.5513],[10.2907,46.5563],[10.2763,46.5648],[10.2331,46.5749],[10.2295,46.5867],[10.2367,46.607],[10.2331,46.6188],[10.2187,46.6272],[10.1935,46.6272],[10.0963,46.6087],[10.0819,46.5968],[10.0711,46.5648],[10.0639,46.5563],[10.0315,46.5327],[10.0315,46.504],[10.0279,46.4938],[10.0279,46.4837],[10.0351,46.4719],[10.0423,46.4668],[10.0279,46.4466],[10.0423,46.4331],[10.0711,46.4246],[10.1179,46.4195],[10.1323,46.4145],[10.1395,46.4027],[10.1323,46.3807],[10.1251,46.374],[10.1035,46.3621],[10.0963,46.352],[10.0927,46.3385],[10.0927,46.3284],[10.0963,46.3199],[10.1035,46.3098],[10.1467,46.2811],[10.1575,46.2625],[10.1467,46.2439],[10.1179,46.2304],[10.0747,46.2203],[10.0423,46.2203],[10.0423,46.2422],[10.0315,46.2608],[9.9919,46.2845],[9.9775,46.298],[9.9703,46.3199],[9.9703,46.3402],[9.9631,46.3554],[9.9379,46.3672],[9.9199,46.3706],[9.8983,46.3723],[9.8551,46.3672],[9.7903,46.3436],[9.7687,46.3385],[9.7543,46.3402],[9.7291,46.3503],[9.7219,46.3503],[9.7075,46.3419],[9.7075,46.3115],[9.6931,46.2963],[9.6751,46.2912],[9.5599,46.2929],[9.5347,46.298],[9.5167,46.3081],[9.5023,46.3199],[9.4843,46.3571],[9.4519,46.3706],[9.4447,46.3756],[9.4411,46.3807],[9.4447,46.3959],[9.4375,46.4922],[9.4339,46.4989],[9.4267,46.4972],[9.4123,46.4888],[9.4051,46.482],[9.4015,46.4753],[9.3943,46.4702],[9.3835,46.4668],[9.3763,46.4685],[9.3511,46.4854],[9.3511,46.4972],[9.3295,46.5023],[9.2827,46.4972],[9.2647,46.4854],[9.2467,46.4618],[9.2395,46.4364],[9.2467,46.4229],[9.2611,46.4162],[9.2611,46.379],[9.2755,46.3436],[9.2755,46.3317],[9.2683,46.3098],[9.2395,46.2676],[9.2251,46.2304],[9.2143,46.2203],[9.2035,46.2135],[9.1927,46.2102],[9.1819,46.2034],[9.1747,46.195],[9.1711,46.1831],[9.1639,46.173],[9.0919,46.1376],[9.0703,46.119],[9.0667,46.1055],[9.0703,46.0835],[9.0667,46.0717],[9.0595,46.0616],[9.0271,46.0531],[9.0019,46.0396],[8.9983,46.0278],[9.0163,45.9923],[8.9839,45.9721],[8.9803,45.9687],[8.9803,45.9636],[8.9947,45.9535],[9.0019,45.9366],[9.0091,45.9265],[9.0199,45.9231],[9.0415,45.9197],[9.0523,45.9164],[9.0631,45.8995],[9.0595,45.8826],[9.0343,45.8488],[9.0019,45.8201],[8.9731,45.8252],[8.9407,45.8353],[8.9011,45.8269],[8.9083,45.8539],[8.9155,45.8657],[8.9119,45.8826],[8.9083,45.8961],[8.8795,45.9315],[8.8723,45.9467],[8.8651,45.9535],[8.8579,45.9569],[8.8003,45.9788],[8.7859,45.9822],[8.7679,45.9839],[8.7679,45.9856],[8.7751,45.9906],[8.7895,46.0194],[8.8183,46.043],[8.8327,46.0666],[8.8075,46.0903],[8.7931,46.0937],[8.7463,46.0937],[8.7391,46.0987],[8.7319,46.1072],[8.7283,46.1088],[8.7175,46.1072],[8.6959,46.0953],[8.6779,46.0953],[8.6311,46.1139],[8.6023,46.1224],[8.5375,46.1882],[8.5087,46.2085],[8.4583,46.2254],[8.4367,46.2355],[8.4259,46.2507],[8.4223,46.276],[8.4259,46.3013],[8.4439,46.3537],[8.4475,46.3824],[8.4475,46.4128],[8.4403,46.4347],[8.4295,46.4483],[8.4007,46.4516],[8.3431,46.4432],[8.3179,46.4331],[8.2963,46.4179],[8.2855,46.406],[8.2891,46.401],[8.2963,46.3976],[8.2963,46.3875],[8.2927,46.379],[8.2819,46.3706],[8.2711,46.3638],[8.2423,46.3537],[8.1919,46.3098],[8.1703,46.2997],[8.1271,46.2929],[8.1055,46.2861],[8.0875,46.2726],[8.0767,46.2625],[8.0731,46.2541],[8.0767,46.249],[8.0983,46.2355],[8.1307,46.1967],[8.1307,46.1595],[8.1091,46.1274],[8.0659,46.1004],[8.0371,46.097],[8.0263,46.092],[8.0191,46.0801],[8.0155,46.07],[8.0155,46.0582],[8.0119,46.0295],[8.0083,46.0278],[7.9975,46.0126],[7.9975,46.0109],[7.9867,45.9991],[7.9687,45.9923],[7.8967,45.9822],[7.8823,45.9738],[7.8715,45.9586],[7.8715,45.94],[7.8499,45.94],[7.8463,45.9282],[7.8463,45.9231],[7.8427,45.9197],[7.8319,45.9147],[7.8247,45.9147],[7.8067,45.918],[7.7815,45.918],[7.7311,45.9299],[7.7239,45.9299],[7.7131,45.9265],[7.6951,45.9282],[7.6735,45.9501],[7.6591,45.9603],[7.6447,45.967],[7.5403,45.9839],[7.5259,45.9788],[7.5043,45.9569],[7.4827,45.9552],[7.4539,45.9451],[7.3927,45.9164],[7.3603,45.9079],[7.2883,45.913],[7.2739,45.9096],[7.2451,45.8978],[7.1839,45.8809],[7.1551,45.8758],[7.1227,45.8758],[7.0903,45.8809],[7.0687,45.891],[7.0219,45.9248],[7.0147,45.9332],[7.0039,45.9619],[6.9931,45.9822],[6.9859,45.9923],[6.9139,46.0481],[6.8923,46.0548],[6.8851,46.0531],[6.8707,46.0447],[6.8599,46.0447],[6.8491,46.0531],[6.8527,46.0565],[6.8527,46.0852],[6.8491,46.0852],[6.8671,46.1055],[6.8707,46.1122],[6.8527,46.1224],[6.7735,46.1342],[6.7663,46.1511],[6.7735,46.1865],[6.7915,46.222],[6.8275,46.2693],[6.8059,46.2963],[6.7699,46.3233],[6.7519,46.3452],[6.7555,46.3571],[6.7807,46.379],[6.7879,46.3959],[6.7879,46.4145],[6.7771,46.4246],[6.7627,46.4297],[6.6151,46.4567],[6.5467,46.4567],[6.4819,46.4483],[6.3991,46.4077],[6.3667,46.4027],[6.3307,46.401],[6.3019,46.3942],[6.2695,46.3756],[6.2191,46.3284],[6.2155,46.3149],[6.2263,46.2878],[6.2263,46.2845],[6.2371,46.2676],[6.2407,46.2642],[6.2515,46.2591],[6.2695,46.2659],[6.2767,46.2625],[6.2803,46.2406],[6.2551,46.2203],[6.1903,46.1916],[6.1399,46.1494],[6.1075,46.1392],[6.0751,46.1494],[6.0283,46.1477],[5.9815,46.1409],[5.9599,46.1308],[5.9707,46.1528],[5.9815,46.1629],[5.9815,46.1713],[5.9635,46.1865],[5.9563,46.2],[5.9599,46.2119],[5.9815,46.222],[6.0463,46.2439],[6.0571,46.2422],[6.0607,46.2406],[6.0895,46.2456],[6.0931,46.2524],[6.0931,46.2726],[6.1003,46.3013],[6.1039,46.3098],[6.1363,46.3588],[6.1363,46.3706],[6.1219,46.3858],[6.1075,46.3959],[6.0607,46.4179],[6.0535,46.4195],[6.0643,46.4263],[6.0679,46.4331],[6.0643,46.4398],[6.0643,46.4516],[6.0607,46.455],[6.0607,46.4651],[6.0643,46.4719],[6.0751,46.4803],[6.1111,46.5209],[6.1471,46.5513],[6.1219,46.5698],[6.1183,46.5833],[6.1327,46.5952],[6.2659,46.6796],[6.3379,46.7066],[6.3487,46.7134],[6.3739,46.7336],[6.4171,46.7505],[6.4279,46.7606],[6.4315,46.7691],[6.4315,46.786],[6.4243,46.791],[6.4171,46.8029],[6.4171,46.8062],[6.4351,46.84],[6.4423,46.8484],[6.4423,46.8518],[6.4459,46.8569],[6.4495,46.8721],[6.4459,46.8822],[6.4315,46.9008],[6.4279,46.9092],[6.4423,46.9447],[6.4927,46.9633],[6.5971,46.9869],[6.6655,47.0207],[6.6871,47.0443],[6.6763,47.0629],[6.6979,47.0848],[6.7231,47.0916],[6.7267,47.0967],[6.7447,47.1034],[6.7447,47.1203],[6.7735,47.1287],[6.8419,47.1693],[6.8599,47.1912],[6.8887,47.2115],[6.9571,47.2453],[6.9535,47.2706],[6.9571,47.2909],[6.9787,47.3044],[6.9859,47.3044],[6.9931,47.306],[7.0075,47.3196],[7.0255,47.3246],[7.0363,47.3297],[7.0435,47.3398],[7.0327,47.35],[7.0039,47.3685],[6.9859,47.3618],[6.8671,47.3533],[6.8707,47.3668],[6.8995,47.3955],[6.9247,47.4057],[6.9247,47.4242],[6.9535,47.4293],[6.9679,47.4344],[6.9823,47.4445],[6.9895,47.453],[6.9859,47.4648],[6.9751,47.4783],[6.9751,47.4884],[6.9931,47.4935],[7.0003,47.4969],[7.0111,47.4985],[7.0291,47.4935],[7.0543,47.4901],[7.1047,47.4969],[7.1263,47.4935],[7.1407,47.4884],[7.1551,47.4867],[7.1803,47.4884],[7.1623,47.4597],[7.1695,47.4428],[7.1911,47.4344],[7.2199,47.4293],[7.2307,47.4192],[7.2379,47.4175],[7.2451,47.4175],[7.2811,47.4293],[7.3099,47.4327],[7.3783,47.431],[7.3891,47.4327],[7.4071,47.4378],[7.4215,47.4513],[7.4287,47.4648],[7.4287,47.4715],[7.4215,47.4749],[7.4179,47.4783],[7.4143,47.4833],[7.4143,47.4901],[7.4251,47.4918],[7.4431,47.4884],[7.4539,47.4833],[7.4683,47.4817],[7.4863,47.4935],[7.4863,47.5002],[7.4755,47.5121],[7.4755,47.5154],[7.4827,47.5171],[7.4935,47.5154],[7.5007,47.5171],[7.5043,47.5222],[7.5043,47.5323],[7.5007,47.5323],[7.4827,47.5425],[7.5223,47.5627],[7.5259,47.5661],[7.5511,47.5762],[7.6375,47.5948],[7.6591,47.5965],[7.6483,47.5712],[7.6375,47.5644],[7.6087,47.5644],[7.6627,47.5458],[7.6843,47.5441],[7.7671,47.556],[7.7851,47.5627],[7.8031,47.5762],[7.8211,47.5948],[7.8355,47.5897],[7.8967,47.588],[7.9039,47.583],[7.9111,47.5644],[7.9111,47.561],[8.0407,47.561],[8.0875,47.5678],[8.0983,47.5712],[8.1055,47.5813],[8.1127,47.588],[8.1451,47.5999],[8.1631,47.6032],[8.1703,47.6083],[8.1739,47.6134],[8.1775,47.6151],[8.2315,47.6218],[8.2495,47.6218],[8.2891,47.6151],[8.2927,47.6117],[8.3071,47.5914],[8.3179,47.588],[8.3539,47.5813],[8.4223,47.5813],[8.4475,47.5847],[8.4619,47.6066],[8.4907,47.6201],[8.5231,47.6218],[8.5375,47.6117],[8.5483,47.5982],[8.5519,47.5965],[8.5591,47.5897],[8.5735,47.5931],[8.5771,47.5948],[8.5807,47.5999],[8.5807,47.6151],[8.5843,47.6218],[8.5807,47.6252],[8.5807,47.6286],[8.5771,47.6336],[8.5807,47.6387],[8.5843,47.6404],[8.5879,47.6421],[8.5951,47.6421],[8.5951,47.6353],[8.6023,47.6319],[8.6059,47.6556],[8.5951,47.659],[8.5699,47.6623],[8.5195,47.6573],[8.4763,47.6404],[8.4583,47.6404],[8.4367,47.6471],[8.4079,47.6623],[8.3899,47.6657],[8.3971,47.6758],[8.3899,47.6927],[8.3935,47.6995],[8.4007,47.7079],[8.4259,47.7164],[8.4367,47.7231],[8.4439,47.7434],[8.4511,47.7501],[8.4619,47.7637],[8.4727,47.767],[8.4835,47.767],[8.5375,47.7738],[8.5519,47.7789],[8.5411,47.7957],[8.5591,47.8008],[8.5843,47.8008],[8.6023,47.794],[8.6023,47.7873],[8.6059,47.7738],[8.6059,47.762],[8.6167,47.7569],[8.6311,47.762],[8.6347,47.7839],[8.6455,47.7907],[8.6563,47.7873],[8.6671,47.7789],[8.6743,47.767],[8.6815,47.7586],[8.6923,47.7569],[8.7031,47.7586],[8.7139,47.7569],[8.7211,47.7468],[8.7031,47.7299],[8.6995,47.7231],[8.7031,47.7147],[8.7139,47.7079],[8.7139,47.7012],[8.7175,47.6944],[8.7715,47.6944],[8.7607,47.7012],[8.7715,47.7214],[8.7967,47.7198],[8.8291,47.7079],[8.8543,47.691],[8.8363,47.6877],[8.8363,47.6809],[8.8507,47.6708],[8.8543,47.6708],[8.8831,47.6556],[8.9047,47.6522],[8.9443,47.6539],[8.9803,47.6623],[8.9983,47.6742],[9.0163,47.6792],[9.1279,47.6708],[9.1819,47.6708],[9.1963,47.6556],[9.2359,47.6556],[9.2719,47.6505],[9.5491,47.534],[9.5527,47.5171],[9.5563,47.5104],[9.5851,47.48],[9.6211,47.4698],[9.6499,47.4513],[9.6499,47.4091],[9.6391,47.3939],[9.5995,47.3618],[9.5959,47.3516],[9.5923,47.3348],[9.5887,47.328],[9.5527,47.2993],[9.5203,47.2621],[9.5059,47.2436],[9.4879,47.2098],[9.4843,47.176],[9.4915,47.1591],[9.5023,47.1456],[9.5131,47.1287],[9.5131,47.1085],[9.5023,47.095],[9.4771,47.073],[9.4771,47.0646],[9.4987,47.0595],[9.5599,47.0528],[9.5815,47.0561],[9.5995,47.0528],[9.6535,47.0578],[9.6679,47.0561],[9.8587,47.0156],[9.8551,47.0038],[9.8659,47.0021],[9.8695,46.9987],[9.8695,46.9937],[9.8659,46.9835],[9.8623,46.9599],[9.8623,46.9396],[9.8767,46.9278],[9.8983,46.9143],[10.0063,46.8907],[10.0459,46.8653],[10.0675,46.8569],[10.1107,46.8468],[10.1323,46.8468],[10.1575,46.8518],[10.2007,46.867],[10.2115,46.8772],[10.2151,46.8839],[10.2151,46.8923],[10.2187,46.9059],[10.2367,46.9227],[10.2511,46.9261],[10.2691,46.9211],[10.2943,46.9227],[10.2979,46.9413],[10.3123,46.965],[10.3375,46.9835],[10.3663,46.9954],[10.3735,46.997],[10.3843,46.9937],[10.3951,46.9852],[10.4167,46.9616],[10.4491,46.9447],[10.4599,46.9363],[10.4635,46.9194],[10.4527,46.8856],[10.4527,46.8636]];
+const CITIES = [["Zürich",47.3769,8.5417],["Bern",46.948,7.4474],["Genève",46.2044,6.1432],["Sion",46.2293,7.3589],["Chur",46.8499,9.5329],["Lugano",46.0037,8.9511],["Basel",47.5596,7.5886]];
+const COS = Math.cos(46.4 * Math.PI / 180);
+const SMN = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn";
+const LAT0 = 45.7, LON0 = 6.7, STEP = 0.05, NLA = 29, NLO = 79, KH = 60;       // lattice for the smooth 0 °C field
+// typical miss of the station line (K), by month, from leaving each station out 1993-2025
+const SIGMA_K = [1.6, 1.6, 1.56, 1.56, 1.56, 1.0, 1.0, 1.0, 1.2, 1.2, 1.2, 1.6];
+const MODELS = [["meteoswiss_icon_ch1","ICON-CH1 (MeteoSwiss, 1 km)"],["meteoswiss_icon_ch2","ICON-CH2 (MeteoSwiss, 2 km)"],["icon_d2","ICON-D2 (DWD, 2 km)"],["icon_eu","ICON-EU (DWD, 7 km)"],["ecmwf_ifs025","ECMWF IFS (25 km)"],["gfs_seamless","GFS (NOAA)"],["arpege_europe","ARPEGE (Météo-France)"],["arome_france","AROME (Météo-France, 1.3 km)"]];
+const TIERS = [
+  { max: 1,   tag: "Good day",     c: 0,  title: "A good day for the glaciers",     msg: (z, p, km) => `Frozen solid. The 0 °C line sits at ${fmt(z)} m, below almost none of the ice.` },
+  { max: 10,  tag: "Fair day",     c: 25, title: "A fair day for the glaciers",     msg: (z, p, km) => `Only the lowest tongues feel any warmth. The line is at ${fmt(z)} m and about ${fmt(km)} km² of ice is under it.` },
+  { max: 30,  tag: "Mixed day",    c: 50, title: "A mixed day for the glaciers",    msg: (z, p, km) => `The lower glaciers are losing ice while the high basins hold. The line is at ${fmt(z)} m, over about ${fmt(km)} km² of ice.` },
+  { max: 60,  tag: "Bad day",      c: 75, title: "A bad day for the glaciers",      msg: (z, p, km) => `${Math.round(p)}% of the ice, about ${fmt(km)} km², is sitting in air above freezing. The line is at ${fmt(z)} m.` },
+  { max: 101, tag: "Terrible day", c: 100, title: "A terrible day for the glaciers", msg: (z, p, km) => `The 0 °C line is up at ${fmt(z)} m, above most of the ice. Even the high snowfields are exposed.` },
+];
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString("en-US");
+const pf = x => x < 0.1 ? (x * 100).toFixed(1) : String(Math.round(x * 100));
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const DAY = 86400000;
+
+/* ---------- state ---------- */
+let HIST, ST = [], START, ND = 0, TS;                 // station list, history start (ms), number of days, temps Float32 [station*ND + day]
+let dayZ, dayG, dayN, dayShare;                       // per-day 0 °C height, cooling rate, station count, share of ice below
+let D, N, wx, wy, cz, cg, Zc, glaciers, total, cdf, offset = 0;
+let li0, lfx, lfy, rowY, rowStart, gx;
+let sel = { kind: "now" }, active = 0, sources = [], info = [], obsNow = null, liveOk = false, showStations = false;
+let colors = {}, packed = {};
+const view = { s: 1, ox: 0, oy: 0 };
+const cv = $("cv"), ctx = cv.getContext("2d");
+let W = 0, H = 0, dpr = 1, raf = 0, layer, lctx, limg, lbuf;
+
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ["melt", "ice", "border", "ink", "ink-2", "panel", "map", "heat0", "line", "bg"]) colors[k] = cs.getPropertyValue("--" + k).trim();
+  const c = document.createElement("canvas"); c.width = c.height = 1; const x = c.getContext("2d", { willReadFrequently: true });
+  const rgb = col => { x.clearRect(0, 0, 1, 1); x.fillStyle = col; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data]; };
+  for (const k of ["melt", "ice", "heat0"]) { const p = rgb(colors[k]); colors[k + "_rgb"] = p; packed[k] = ((255 << 24) | (p[2] << 16) | (p[1] << 8) | p[0]) >>> 0; }
+}
+
+/* ---------- helpers: dates, fits ---------- */
+const dayDate = k => new Date(START + k * DAY);
+const dayIndex = d => Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - START) / DAY);
+const dayLabel = (k, long) => dayDate(k).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", weekday: long ? "short" : undefined, timeZone: "UTC" });
+function fitRate(zs, ts, month) {    // cooling rate °C/m from a straight-line fit, kept within a believable 4-8 °C/km
+  const n = zs.length; if (n < 8) return HIST.monthRates[month] / 1000;
+  let sz = 0, st = 0; for (let i = 0; i < n; i++) { sz += zs[i]; st += ts[i]; }
+  const mz = sz / n, mt = st / n; let a = 0, b = 0;
+  for (let i = 0; i < n; i++) { a += (zs[i] - mz) * (ts[i] - mt); b += (zs[i] - mz) ** 2; }
+  return Math.min(Math.max(-a / b * 1000, 4), 8) / 1000;
+}
+async function inflate(b64) {
+  const bin = atob(b64), u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("deflate"))).arrayBuffer();
+}
+const parseCSV = t => { const L = t.trim().split(/\r?\n/); const h = L[0].split(";"); return L.slice(1).map(l => { const c = l.split(";"), o = {}; h.forEach((k, i) => o[k] = c[i]); return o; }); };
+async function getText(url) { const r = await fetch(url); if (!r.ok) throw new Error(url + " " + r.status); return r.text(); }
+
+/* ---------- history: baked + live recent days ---------- */
+async function loadHistory() {
+  HIST = await (await fetch("history.json")).json();
+  ST = HIST.stations; START = Date.parse(HIST.start + "T00:00:00Z");
+  const q = new Int16Array(await inflate(HIST.t)), S = ST.length, nb = HIST.days;
+  const recent = await Promise.all(ST.map(s => getText(`${SMN}/${s.a.toLowerCase()}/ogd-smn_${s.a.toLowerCase()}_d_recent.csv`).then(parseCSV).catch(() => [])));
+  let last = nb - 1;
+  const rec = recent.map(rows => rows.map(r => { const m = /^(\d+)\.(\d+)\.(\d+)/.exec(r.reference_timestamp || ""); const v = r.tre200d0;
+    if (!m || v === "" || v === "-" || v === undefined) return null;
+    const k = Math.round((Date.UTC(+m[3], +m[2] - 1, +m[1]) - START) / DAY); if (k > last) last = k; return [k, +v]; }).filter(Boolean));
+  ND = last + 1; TS = new Float32Array(S * ND).fill(NaN);
+  for (let s = 0; s < S; s++) for (let k = 0; k < nb; k++) { const v = q[s * nb + k]; if (v !== -32768) TS[s * ND + k] = v / 10; }
+  rec.forEach((rows, s) => rows.forEach(([k, v]) => { if (k >= 0) TS[s * ND + k] = v; }));
+  dayZ = new Float32Array(ND).fill(NaN); dayG = new Float32Array(ND); dayN = new Uint8Array(ND);
+  const zs = [], ts = [];
+  for (let k = 0; k < ND; k++) {
+    zs.length = ts.length = 0;
+    for (let s = 0; s < S; s++) { const v = TS[s * ND + k]; if (!Number.isNaN(v)) { zs.push(ST[s].z); ts.push(v); } }
+    dayN[k] = zs.length; if (zs.length < 8) continue;
+    const g = fitRate(zs, ts, dayDate(k).getUTCMonth()); dayG[k] = g;
+    let sum = 0; for (let i = 0; i < zs.length; i++) sum += zs[i] + ts[i] / g; dayZ[k] = sum / zs.length;
+  }
+}
+
+/* ---------- live observations and the 0 °C field ---------- */
+async function loadObs() {
+  try {
+    const rows = await Promise.all(ST.map(async s => {
+      const rs = parseCSV(await getText(`${SMN}/${s.a.toLowerCase()}/ogd-smn_${s.a.toLowerCase()}_t_now.csv`));
+      for (let i = rs.length - 1; i >= 0; i--) { const v = rs[i].tre200s0; if (v !== "" && v !== "-" && v !== undefined) return [rs[i].reference_timestamp, +v]; }
+      return null;
+    }));
+    const ok = rows.filter(Boolean); if (ok.length < 8) throw new Error("too few stations");
+    const stamp = ok.map(r => r[0]).sort().pop();
+    const m = /^(\d+)\.(\d+)\.(\d+) (\d+):(\d+)/.exec(stamp);
+    obsNow = { t: rows.map(r => r ? r[1] : NaN), time: Date.UTC(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]) }; liveOk = true;
+  } catch (e) {
+    const s = await (await fetch("snapshot.json")).json();
+    obsNow = { t: ST.map(x => s.t[x.a] ?? NaN), time: Date.parse(s.time + ":00Z") }; liveOk = false;
+  }
+}
+function lattice(Zsite, sites) {   // smooth the per-station 0 °C heights into a regular grid (Gaussian, 60 km)
+  const f = new Float32Array(NLA * NLO);
+  for (let i = 0; i < NLA; i++) for (let j = 0; j < NLO; j++) {
+    const la = LAT0 + i * STEP, lo = LON0 + j * STEP; let sw = 0, sz = 0;
+    for (let k = 0; k < sites.length; k++) { const d2 = ((la - sites[k].la) * 111.2) ** 2 + ((lo - sites[k].lo) * 111.2 * COS) ** 2, w = Math.exp(-0.5 * d2 / (KH * KH)); sw += w; sz += w * Zsite[k]; }
+    f[i * NLO + j] = sz / sw;
+  }
+  return f;
+}
+function buildStationSource() {
+  const idx = ST.map((s, i) => i).filter(i => !Number.isNaN(obsNow.t[i])), zs = idx.map(i => ST[i].z), ts = idx.map(i => obsNow.t[i]);
+  const mo = new Date(obsNow.time).getUTCMonth(), g = fitRate(zs, ts, mo);
+  const Zsite = idx.map((i, a) => zs[a] + ts[a] / g), sites = idx.map(i => ST[i]);
+  const sig = SIGMA_K[mo];
+  sources[0] = { id: "stations", name: "MeteoSwiss stations", field: lattice(Zsite, sites), g, rmse: sig, bias: 0, mo };
+}
+async function loadModels() {
+  const btn = $("loadmodels"); btn.disabled = true; btn.textContent = "Loading models…";
+  const g = sources[0].g, hr = new Date(obsNow.time).getUTCHours(), day = new Date(obsNow.time).toISOString().slice(0, 10);
+  const idx = ST.map((s, i) => i).filter(i => !Number.isNaN(obsNow.t[i]));
+  const lat = idx.map(i => ST[i].la).join(","), lon = idx.map(i => ST[i].lo).join(",");
+  for (const [id, name] of MODELS) {
+    try {
+      let d;
+      for (let tries = 0; tries < 3; tries++) {
+        const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,freezing_level_height&start_date=${day}&end_date=${day}&timezone=UTC&models=${id}`);
+        if (r.status === 429) { await new Promise(r => setTimeout(r, 4000)); continue; }
+        d = await r.json(); break;
+      }
+      if (!d) continue; d = Array.isArray(d) ? d : [d];
+      const Zm = [], err = [], rep = [];
+      idx.forEach((i, a) => {
+        const h = d[a].hourly, t2 = h.temperature_2m[hr], fl = h.freezing_level_height ? h.freezing_level_height[hr] : null; if (t2 == null) return;
+        const zi = d[a].elevation + t2 / g; Zm.push(zi); err.push(-g * (ST[i].z - zi) - obsNow.t[i]);
+        if (fl != null) rep.push(-g * (ST[i].z - fl) - obsNow.t[i]);
+      });
+      if (Zm.length < 8) continue;
+      const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+      sources.push({ id, name, field: lattice(Zm, idx.map(i => ST[i])), g, bias: mean(err), rmse: Math.sqrt(mean(err.map(e => e * e))), rep: rep.length ? mean(rep) : null });
+    } catch (e) { console.warn(id, e); }
+    await new Promise(r => setTimeout(r, 600));
+  }
+  btn.hidden = true; computeInfo(); renderSources();
+}
+
+/* ---------- glacier cells ---------- */
+async function decodeCells() {
+  const buf = await inflate(D.cells); N = D.n;
+  const dy = new Uint16Array(buf, 0, N), dx = new Uint16Array(buf, 2 * N, N), dz = new Int16Array(buf, 4 * N, N);
+  cg = new Uint16Array(buf, 6 * N, N).slice(); cz = new Uint16Array(N);
+  wx = new Float32Array(N); wy = new Float32Array(N); gx = new Uint16Array(N);
+  li0 = new Int32Array(N); lfx = new Float32Array(N); lfy = new Float32Array(N);
+  const rows = [], starts = []; let x = 0, y = 0, z = 0;
+  for (let i = 0; i < N; i++) {
+    if (dy[i] > 0) { y += dy[i]; x = dx[i]; rows.push(y); starts.push(i); } else x += dx[i];
+    z += dz[i]; cz[i] = z; gx[i] = x;
+    const lon = D.lon0 + (x + .5) * D.d, lat = D.lat0 - (y + .5) * D.d;
+    wx[i] = (D.lon0 + x * D.d) * COS; wy[i] = -(D.lat0 - y * D.d);
+    const fi = (lat - LAT0) / STEP, fj = (lon - LON0) / STEP;
+    const i0 = Math.min(Math.max(Math.floor(fi), 0), NLA - 2), j0 = Math.min(Math.max(Math.floor(fj), 0), NLO - 2);
+    li0[i] = i0 * NLO + j0; lfy[i] = Math.min(Math.max(fi - i0, 0), 1); lfx[i] = Math.min(Math.max(fj - j0, 0), 1);
+  }
+  rowY = Int32Array.from(rows); rowStart = Int32Array.from([...starts, N]);
+  glaciers = D.glaciers.map(([name, id, area]) => ({ name, id, area, n: 0, melt: 0, x0: 1e9, x1: -1e9, y0: 1e9, y1: -1e9 }));
+  for (let i = 0; i < N; i++) { const g = glaciers[cg[i]]; g.n++; if (wx[i] < g.x0) g.x0 = wx[i]; if (wx[i] > g.x1) g.x1 = wx[i]; if (wy[i] < g.y0) g.y0 = wy[i]; if (wy[i] > g.y1) g.y1 = wy[i]; }
+  total = glaciers.reduce((s, g) => s + g.area, 0);
+  Zc = new Float32Array(N);
+  const hist = new Float64Array(480); for (let i = 0; i < N; i++) hist[Math.min(Math.floor(cz[i] / 10), 479)]++;
+  cdf = new Float64Array(481); for (let b = 0; b < 480; b++) cdf[b + 1] = cdf[b] + hist[b] / N;
+}
+const shareAt = z => { if (!(z > 0)) return 0; const b = z / 10, i = Math.floor(b); if (i >= 480) return 1; return cdf[i] + (cdf[i + 1] - cdf[i]) * (b - i); };
+function lineAt(f, i) { const k = li0[i], a = lfx[i], b = lfy[i]; return (f[k] * (1 - a) + f[k + 1] * a) * (1 - b) + (f[k + NLO] * (1 - a) + f[k + NLO + 1] * a) * b; }
+function share(f, off) { let m = 0; for (let i = 0; i < N; i++) if (cz[i] < lineAt(f, i) + off) m++; return m / N; }
+
+/* ---------- selection -> map field -> numbers ---------- */
+function applySelection() {
+  if (sel.kind === "day") Zc.fill(dayZ[sel.k]); else { const f = sources[active].field; for (let i = 0; i < N; i++) Zc[i] = lineAt(f, i); }
+  recount(); renderAll(); schedule();
+}
+function current() {   // everything the banner needs for the chosen state
+  let zsum = 0, n = 0; for (let i = 0; i < N; i += 7) { zsum += Zc[i]; n++; }
+  const z = zsum / n + offset;
+  let melt = 0; for (let i = 0; i < N; i++) if (cz[i] < Zc[i] + offset) melt++;
+  const p = melt / N, g = sel.kind === "day" ? dayG[sel.k] : sources[active].g;
+  const mo = sel.kind === "day" ? dayDate(sel.k).getUTCMonth() : sources[0].mo;
+  return { z, p, melt, g, sig: SIGMA_K[mo] / g, km: p * total };
+}
+function recount() {
+  for (const g of glaciers) g.melt = 0;
+  for (let i = 0; i < N; i++) if (cz[i] < Zc[i] + offset) glaciers[cg[i]].melt++;
+}
+function renderAll() {
+  const c = current(), lo = shareAt(c.z - c.sig), hi = shareAt(c.z + c.sig);
+  $("pct").textContent = pf(c.p);
+  $("lead").innerHTML = `of Swiss glacier area lies below the 0 °C line, about <b>${fmt(c.km)}</b> of ${fmt(total)} km².` + (active === 0 || sel.kind === "day" ? ` With the line ±${fmt(c.sig)} m: ${hi < 0.0005 ? "still none of it" : lo > 0.9995 ? "still all of it" : `${pf(lo)}–${pf(hi)}%`}.` : "");
+  const when = sel.kind === "day" ? `daily mean of ${dayLabel(sel.k)}` : `${sources[active].name}, ${new Date(obsNow.time).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`;
+  $("meta").innerHTML = `0 °C line over the glaciers: <b>${fmt(c.z)} m</b> on average (${when})` + (offset ? `, raised by ${fmt(offset)} m.` : ".");
+  renderVerdict(c); renderList(); renderSources(); drawProfile(c); markHeat();
+}
+
+/* ---------- verdict banner ---------- */
+function windowRank(kref) {   // share of comparable days (same time of year, ±7 days, other years) with a lower 0 °C line
+  const d0 = dayDate(kref), yr = d0.getUTCFullYear(); let below = 0, n = 0;
+  for (let y = 1993; y <= dayDate(ND - 1).getUTCFullYear(); y++) {
+    if (y === yr) continue;
+    const kc = dayIndex(new Date(Date.UTC(y, d0.getUTCMonth(), d0.getUTCDate())));
+    for (let k = kc - 7; k <= kc + 7; k++) if (k >= 0 && k < ND && !Number.isNaN(dayZ[k])) { n++; if (dayZ[k] < dayZ[kref]) below++; }
+  }
+  return n ? below / n : NaN;
+}
+function renderVerdict(c) {
+  const p = c.p * 100, t = TIERS.find(t => p < t.max) || TIERS[4], ti = TIERS.indexOf(t);
+  const root = $("verdict"); root.style.setProperty("--tier", `color-mix(in srgb, var(--melt) ${t.c}%, var(--ice))`);
+  $("vtag").textContent = t.tag;
+  const past = sel.kind === "day";
+  $("vtitle").textContent = past ? `${dayLabel(sel.k)}: ${t.title.charAt(0).toLowerCase() + t.title.slice(1)}` : t.title;
+  $("vmsg").textContent = t.msg(c.z, p, c.km) + (offset ? ` (With the line raised by ${fmt(offset)} m.)` : "");
+  const kref = past ? sel.k : ND - 1, r = Number.isNaN(dayZ[kref]) ? NaN : windowRank(kref);
+  const lbl = past ? "That day's" : `Yesterday's (${dayLabel(kref).replace(/ \d{4}$/, "")})`;
+  const d = dayDate(kref), a = new Date(d - 7 * DAY), b = new Date(d.getTime() + 7 * DAY), md = x => x.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+  $("vctx").textContent = Number.isNaN(r) ? "" : `${lbl} mean 0 °C line, ${fmt(dayZ[kref])} m, was higher than on ${Math.round(r * 100)}% of ${md(a)}–${md(b)} days since 1993.`;
+  const m = $("vmeter"); m.innerHTML = TIERS.map((x, i) => `<span class="${i === ti ? "on" : ""}" style="--c:color-mix(in srgb, var(--melt) ${x.c}%, var(--ice))">${x.tag.replace(" day", "")}</span>`).join("");
+  const lv = $("vlive"); lv.className = "live" + (past || liveOk ? "" : " off");
+  lv.querySelector("span").textContent = past ? "Time travel: station daily means from MeteoSwiss." : liveOk ? `Live from MeteoSwiss, ${new Date(obsNow.time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC. Refreshes every 10 minutes.` : "Offline snapshot, live data could not be reached.";
+  $("vnow").disabled = !past; const di = $("vdate"); di.value = past ? dayDate(sel.k).toISOString().slice(0, 10) : "";
+}
+function drawProfile(c) {    // ice area by height, split by the 0 °C line
+  const lo = 1000, hi = 4600, bw = 100, bands = (hi - lo) / bw, w = 280, h = 230, pl = 44, pr = 6, pt = 6, pb = 10, ph = h - pt - pb;
+  let max = 0; const v = [];
+  for (let b = 0; b < bands; b++) { const a = lo + b * bw, f = shareAt(a + bw) - shareAt(a); v.push(f); if (f > max) max = f; }
+  const y = e => pt + ph * (1 - (e - lo) / (hi - lo)), x = f => pl + (w - pl - pr) * f / max;
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Glacier ice area by elevation with the 0 degree line">`;
+  for (const e of [1500, 2500, 3500, 4500]) s += `<line x1="${pl}" x2="${w - pr}" y1="${y(e)}" y2="${y(e)}" stroke="var(--line)" stroke-width="1"/><text x="${pl - 6}" y="${y(e) + 4}" text-anchor="end" font-size="11" fill="var(--ink-2)">${fmt(e)}</text>`;
+  v.forEach((f, b) => { const a = lo + b * bw, below = a + bw / 2 < c.z; s += `<rect x="${pl}" y="${y(a + bw) + 1}" width="${Math.max(x(f) - pl, 0)}" height="${Math.max(y(a) - y(a + bw) - 1, 0)}" fill="var(${below ? "--melt" : "--ice"})"/>`; });
+  const yz = Math.min(Math.max(y(c.z), pt), pt + ph);
+  s += `<line x1="${pl - 4}" x2="${w - pr}" y1="${yz}" y2="${yz}" stroke="var(--ink)" stroke-width="2"/><text x="${w - pr}" y="${Math.max(yz - 6, 14)}" text-anchor="end" font-size="12" font-weight="600" fill="var(--ink)">0 °C line ${fmt(c.z)} m</text></svg>`;
+  $("vprof").innerHTML = s + `<p class="cap">Glacier ice by height (m). The line cuts the ice where the air turns above freezing.</p>`;
+}
+
+/* ---------- side panels ---------- */
+function computeInfo() { info = sources.map(S => { let sum = 0; for (let i = 0; i < N; i += 7) sum += lineAt(S.field, i); return { mean: sum / Math.ceil(N / 7), pct: share(S.field, offset) }; }); }
+function renderSources() {
+  const day = sel.kind === "day"; $("srcpanel").hidden = false;
+  const ul = $("srcs"); ul.textContent = "";
+  if (day) { $("srchint").textContent = `Past days use the station line only: the average 0 °C height of ${dayN[sel.k]} stations on ${dayLabel(sel.k)}, cooling ${fmt(dayG[sel.k] * 1e5) / 100} °C per km.`; $("loadmodels").hidden = true; return; }
+  $("loadmodels").hidden = sources.length > 1;
+  if (!info.length) computeInfo();
+  sources.forEach((S, k) => {
+    const li = document.createElement("li"), b = document.createElement("button"); b.setAttribute("aria-pressed", k === active);
+    b.innerHTML = `<span class="row"><span>${esc(S.name)}</span><span>${fmt(info[k].mean + offset)} m</span></span><span class="row2">${pf(info[k].pct)}% of ice below · ${k === 0 ? "typical miss" : "error vs stations"} ${S.rmse.toFixed(1)} K${Math.abs(S.bias) >= 0.1 ? `, bias ${S.bias > 0 ? "+" : "−"}${Math.abs(S.bias).toFixed(1)} K` : ""}</span>`;
+    b.addEventListener("click", () => { active = k; applySelection(); });
+    li.append(b); ul.append(li);
+  });
+  const S = sources[active];
+  $("srchint").textContent = active === 0 ? `Measured temperatures at ${ST.filter((s, i) => !Number.isNaN(obsNow.t[i])).length} stations above 2,000 m, cooling ${(S.g * 1000).toFixed(1)} °C per km (fitted to the stations).`
+    : `Model 2 m temperatures at the same station sites, same cooling rate. Error compares the model with the measured temperatures right now.` + (S.rep != null ? ` The model's own freezing-level output runs ${S.rep.toFixed(1)} K ${S.rep > 0 ? "warm" : "cold"} there (about ${fmt(Math.abs(S.rep) / S.g)} m ${S.rep > 0 ? "too high" : "too low"}).` : "");
+}
+function renderList() {
+  const top = glaciers.filter(g => g.name).sort((a, b) => b.area - a.area).slice(0, 8), ul = $("list"); ul.textContent = "";
+  for (const g of top) { const li = document.createElement("li"), b = document.createElement("button"), p = g.n ? Math.round(100 * g.melt / g.n) : 0;
+    b.innerHTML = `<span class="row"><span>${esc(g.name)}</span><span>${fmt(g.area)} km² · ${p}%</span></span><span class="bar"><i style="width:${p}%"></i></span>`;
+    b.addEventListener("click", () => flyTo(g)); li.append(b); ul.append(li); }
+}
+function renderNotes() {
+  $("notes").innerHTML =
+    `<p>Air above 0 °C over a glacier does not mean it is melting at that moment. Fresh snow, cold ice, shade and wind all hold melt back, and in late autumn most glaciers carry snow. The page shows exposure to melt, not measured melt.</p>` +
+    `<p>The line is the average height where the temperature would reach 0 °C, worked out from each station above 2,000 m (height + temperature ÷ cooling rate). The cooling rate is fitted to the stations each time, within 4–8 °C per km. Stations below 2,000 m are left out because cold air pools in valleys and pulls the line down. Leaving each station out in turn, the line misses its temperature by about 1.0 K in summer and 1.6 K in winter, roughly 160–280 m in height. History uses daily mean temperatures and needs at least 8 stations a day. In hot summer spells the line rises above the highest station (Jungfraujoch, 3,571 m), so there it is extended from the fitted cooling rate rather than measured.</p>` +
+    `<p>Glaciers are held at their 2023 outlines and 30 m terrain heights for every year. Earlier years had more ice at lower heights, so past exposure is understated, and the km² figures should not be compared across years. The Payerne radiosonde, a direct reading of the 0 °C height, is not used because its MeteoSwiss file is not openly downloadable yet.</p>` +
+    `<p>Data: <a href="https://doi.glamos.ch/data/inventory/inventory_sgi2023_r2026.html" target="_blank" rel="noopener">Swiss Glacier Inventory 2023</a> (GLAMOS, doi 10.18750/inventory.sgi2023.r2026), <a href="https://registry.opendata.aws/copernicus-dem/" target="_blank" rel="noopener">Copernicus DEM GLO-30</a>, <a href="https://opendatadocs.meteoswiss.ch/" target="_blank" rel="noopener">MeteoSwiss open data</a> (SwissMetNet), models via <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.</p>`;
+}
+
+/* ---------- history charts ---------- */
+const HEAT = { x0: 34, top: 16, row: 9, colw: 0 };
+function heatGeom() { const c = $("heat"), w = c.clientWidth || 900; HEAT.colw = (w - HEAT.x0 - 4) / 366; return { w, h: HEAT.top + (dayDate(ND - 1).getUTCFullYear() - 1992) * HEAT.row + 4 }; }
+const heatColor = p => { const t = Math.sqrt(Math.min(Math.max(p, 0), 1)), a = colors.heat0_rgb, b = colors.melt_rgb; return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`; };
+function drawHeat() {
+  const c = $("heat"), { w, h } = heatGeom(), r = window.devicePixelRatio || 1; c.width = w * r; c.height = h * r; c.style.height = h + "px";
+  const g = c.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h);
+  g.font = "11px Inter, system-ui, sans-serif"; g.fillStyle = colors["ink-2"]; g.textBaseline = "middle";
+  const y0 = dayDate(0).getUTCFullYear(), y1 = dayDate(ND - 1).getUTCFullYear();
+  for (let y = y0; y <= y1; y++) {
+    const yy = HEAT.top + (y - y0) * HEAT.row;
+    if (y % 5 === 0 || y === y0) { g.textAlign = "right"; g.fillStyle = colors["ink-2"]; g.fillText(String(y), HEAT.x0 - 6, yy + HEAT.row / 2); }
+    const k0 = dayIndex(new Date(Date.UTC(y, 0, 1)));
+    for (let d = 0; d < 366; d++) {
+      const k = k0 + d, dt = dayDate(k); if (dt.getUTCFullYear() !== y || k < 0 || k >= ND) continue;
+      const doy = Math.round((Date.UTC(y, dt.getUTCMonth(), dt.getUTCDate()) - Date.UTC(y, 0, 1)) / DAY);
+      const x = HEAT.x0 + doy * HEAT.colw;
+      if (Number.isNaN(dayZ[k])) { g.fillStyle = colors.line; g.fillRect(x, yy, HEAT.colw + .3, HEAT.row - 1); g.fillStyle = colors.bg; g.fillRect(x, yy + 3, HEAT.colw + .3, 1.5); continue; }
+      g.fillStyle = heatColor(dayShare[k]); g.fillRect(x, yy, HEAT.colw + .3, HEAT.row - 1);
+    }
+  }
+  g.textAlign = "left"; g.fillStyle = colors["ink-2"];
+  ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].forEach((m, i) => { const doy = Math.round((Date.UTC(2001, i, 1) - Date.UTC(2001, 0, 1)) / DAY); g.fillText(m, HEAT.x0 + doy * HEAT.colw, 7); });
+  c._ready = true; markHeat();
+}
+function markHeat() {
+  const c = $("heat"); if (!c._ready || sel.kind !== "day") { c._mark = null; const m = $("hmark"); if (m) m.remove(); return; }
+  let m = $("hmark"); if (!m) { m = document.createElement("div"); m.id = "hmark"; m.style.cssText = "position:absolute;pointer-events:none;border:2px solid var(--ink);border-radius:2px;box-shadow:0 0 0 1px var(--panel)"; $("heat").parentElement.append(m); }
+  const dt = dayDate(sel.k), y0 = dayDate(0).getUTCFullYear(), doy = Math.round((Date.UTC(2001 - 1 + 1, 0, 1) * 0 + Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()) - Date.UTC(dt.getUTCFullYear(), 0, 1)) / DAY);
+  m.style.left = HEAT.x0 + doy * HEAT.colw - 2 + "px"; m.style.top = HEAT.top + (dt.getUTCFullYear() - y0) * HEAT.row - 2 + "px"; m.style.width = Math.max(HEAT.colw, 2) + 3 + "px"; m.style.height = HEAT.row + 2 + "px";
+}
+function heatHit(e) {
+  const r = $("heat").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, y0 = dayDate(0).getUTCFullYear();
+  const yr = y0 + Math.floor((y - HEAT.top) / HEAT.row), doy = Math.floor((x - HEAT.x0) / HEAT.colw);
+  if (yr < y0 || doy < 0 || doy > 365) return -1;
+  const k = dayIndex(new Date(Date.UTC(yr, 0, 1 + doy))); return dayDate(k).getUTCFullYear() === yr && k >= 0 && k < ND ? k : -1;
+}
+$("heat").addEventListener("pointermove", e => {
+  const k = heatHit(e), t = $("htip"); if (k < 0) { t.hidden = true; return; }
+  t.innerHTML = Number.isNaN(dayZ[k]) ? `<b>${dayLabel(k, true)}</b><br>Too few stations reported` : `<b>${dayLabel(k, true)}</b><br>0 °C line ${fmt(dayZ[k])} m<br>${pf(dayShare[k])}% of the ice below it`;
+  t.hidden = false; const r = $("heat").getBoundingClientRect(); t.style.left = Math.min(e.clientX - r.left + 14, r.width - t.offsetWidth - 4) + "px"; t.style.top = Math.max(e.clientY - r.top - t.offsetHeight - 8, 0) + "px";
+});
+$("heat").addEventListener("pointerleave", () => { $("htip").hidden = true; });
+$("heat").addEventListener("click", e => { const k = heatHit(e); if (k >= 0 && !Number.isNaN(dayZ[k])) selectDay(k); });
+
+function yearStats() {
+  const y0 = dayDate(0).getUTCFullYear(), y1 = dayDate(ND - 1).getUTCFullYear(), out = [];
+  for (let y = y0; y <= y1; y++) {
+    let sum = 0, n = 0, bad = 0, nd = 0;
+    for (let k = dayIndex(new Date(Date.UTC(y, 0, 1))); k <= dayIndex(new Date(Date.UTC(y, 11, 31))); k++) {
+      if (k < 0 || k >= ND || Number.isNaN(dayZ[k])) continue; nd++; if (dayShare[k] >= 0.1) bad++;
+      const mo = dayDate(k).getUTCMonth(); if (mo >= 5 && mo <= 8) { sum += dayZ[k]; n++; }
+    }
+    out.push({ y, summer: n >= 100 ? sum / n : NaN, bad, nd, full: y < y1 || (dayDate(ND - 1).getUTCMonth() === 11 && dayDate(ND - 1).getUTCDate() === 31) });
+  }
+  return out;
+}
+const niceStep = r => { const p = 10 ** Math.floor(Math.log10(r)), m = r / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; };
+function lineChart(el, title, sub, pts, unit, fmtv) {   // pts: [{y,v,hollow}]
+  const w = 520, h = 250, pl = 46, pr = 10, pt = 10, pb = 26, v = pts.filter(p => !Number.isNaN(p.v));
+  const ymin = Math.min(...v.map(p => p.v)), ymax = Math.max(...v.map(p => p.v)), span = (ymax - ymin) || 1, st = niceStep(span * 1.2 / 4), lo = Math.floor((ymin - span * 0.05) / st) * st, hi = Math.ceil((ymax + span * 0.05) / st) * st;
+  const x0 = v[0].y, x1 = v[v.length - 1].y, X = y => pl + (w - pl - pr) * (y - x0) / (x1 - x0), Y = a => pt + (h - pt - pb) * (1 - (a - lo) / (hi - lo));
+  const n = v.length, mx = v.reduce((s, p) => s + p.y, 0) / n, my = v.reduce((s, p) => s + p.v, 0) / n; let sxy = 0, sxx = 0; v.forEach(p => { sxy += (p.y - mx) * (p.v - my); sxx += (p.y - mx) ** 2; });
+  const b = sxy / sxx, a0 = my - b * mx;
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(title)}">`;
+  for (let val = lo; val <= hi + st / 2; val += st) { s += `<line x1="${pl}" x2="${w - pr}" y1="${Y(val)}" y2="${Y(val)}" stroke="var(--line)"/><text x="${pl - 6}" y="${Y(val) + 4}" text-anchor="end" font-size="11" fill="var(--ink-2)">${fmtv(val)}</text>`; }
+  for (let y = Math.ceil(x0 / 5) * 5; y <= x1; y += 5) s += `<text x="${X(y)}" y="${h - 8}" text-anchor="middle" font-size="11" fill="var(--ink-2)">${y}</text>`;
+  s += `<line x1="${X(x0)}" y1="${Y(a0 + b * x0)}" x2="${X(x1)}" y2="${Y(a0 + b * x1)}" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s += `<polyline fill="none" stroke="var(--melt)" stroke-width="2" stroke-linejoin="round" points="${v.map(p => `${X(p.y)},${Y(p.v)}`).join(" ")}"/>`;
+  v.forEach(p => s += `<circle cx="${X(p.y)}" cy="${Y(p.v)}" r="4" fill="${p.hollow ? "var(--panel)" : "var(--melt)"}" stroke="${p.hollow ? "var(--melt)" : "var(--panel)"}" stroke-width="2"><title>${p.y}: ${fmtv(p.v)} ${unit}${p.hollow ? " (year not finished)" : ""}</title></circle>`);
+  s += `</svg>`;
+  el.innerHTML = `<h3>${title}</h3><p>${sub} Trend: <b>${b * 10 >= 0 ? "+" : "−"}${fmtv(Math.abs(b * 10))} ${unit} per decade</b> (dashed).</p>` + s;
+}
+function drawCharts() {
+  const ys = yearStats();
+  lineChart($("chA"), "Summer 0 °C line", "Average height of the 0 °C line, June to September.", ys.map(r => ({ y: r.y, v: r.summer })), "m", v => fmt(v));
+  lineChart($("chB"), "Days with ice below the line", "Days per year when at least a tenth of the ice lay below the 0 °C line.", ys.map(r => ({ y: r.y, v: r.nd ? r.bad * (r.full ? 365 / r.nd : 1) : NaN, hollow: !r.full })), "days", v => fmt(v));
+  $("tbl").innerHTML = `<table><tr><th>Year</th><th>Summer 0 °C line (m)</th><th>Days with ≥10% of ice below</th><th>Days with data</th></tr>${ys.map(r => `<tr><td>${r.y}</td><td>${Number.isNaN(r.summer) ? "–" : fmt(r.summer)}</td><td>${r.bad}${r.full ? "" : " so far"}</td><td>${r.nd}</td></tr>`).join("")}</table>`;
+}
+
+/* ---------- selection controls ---------- */
+function selectDay(k) { sel = { kind: "day", k }; applySelection(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+function selectNow() { sel = { kind: "now" }; applySelection(); }
+$("vnow").onclick = selectNow;
+$("vdate").addEventListener("change", e => {
+  if (!e.target.value) return; const d = new Date(e.target.value + "T00:00:00Z"), k = dayIndex(d);
+  if (k < 0 || k >= ND || Number.isNaN(dayZ[k])) { renderVerdict(current()); return; }
+  sel = { kind: "day", k }; applySelection();
+});
+$("loadmodels").onclick = loadModels;
+$("stbtn").onclick = () => { showStations = !showStations; $("stbtn").setAttribute("aria-pressed", showStations); schedule(); };
+let tInfo = 0; const off = $("off");
+off.addEventListener("input", () => { offset = +off.value; $("offout").textContent = "+" + fmt(offset) + " m"; $("reset").disabled = offset === 0; recount(); renderAll(); schedule(); clearTimeout(tInfo); tInfo = setTimeout(() => { computeInfo(); renderSources(); }, 250); });
+$("reset").onclick = () => { off.value = 0; off.dispatchEvent(new Event("input")); };
+
+/* ---------- map ---------- */
+function fit() { const minX = 5.9 * COS, maxX = 10.55 * COS, minY = -47.85, maxY = -45.75; view.s = Math.min(W / (maxX - minX), H / (maxY - minY)); view.ox = (W - (maxX - minX) * view.s) / 2 - minX * view.s; view.oy = (H - (maxY - minY) * view.s) / 2 - minY * view.s; }
+function resize() {
+  const r = cv.getBoundingClientRect(); dpr = window.devicePixelRatio || 1; const first = !W; W = r.width; H = r.height;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  layer = document.createElement("canvas"); layer.width = cv.width; layer.height = cv.height; lctx = layer.getContext("2d"); limg = lctx.createImageData(layer.width, layer.height); lbuf = new Uint32Array(limg.data.buffer);
+  if (first) fit(); schedule();
+}
+function schedule() { if (!raf) raf = requestAnimationFrame(draw); }
+function stationValue(i) { return sel.kind === "day" ? TS[i * ND + sel.k] : obsNow.t[i]; }
+function draw() {
+  raf = 0; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = colors.map; ctx.fillRect(0, 0, W, H);
+  const { s, ox, oy } = view; ctx.beginPath();
+  BORDER.forEach(([lo, la], i) => { const x = lo * COS * s + ox, y = -la * s + oy; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath();
+  ctx.fillStyle = colors.panel; ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = colors.border; ctx.lineWidth = 1; ctx.stroke();
+  if (N) splat(); ctx.setTransform(1, 0, 0, 1, 0, 0); if (N) ctx.drawImage(layer, 0, 0); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.font = "500 11px Inter, system-ui, sans-serif"; ctx.textBaseline = "middle";
+  for (const [name, la, lo] of CITIES) { const x = lo * COS * s + ox, y = -la * s + oy; ctx.fillStyle = colors["ink-2"]; ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 7); ctx.fill(); label(name, x + 6, y, colors["ink-2"]); }
+  if (N && s > 900) for (const g of glaciers) if (g.name && g.area > (s > 2500 ? 3 : 15)) { const x = (g.x0 + g.x1) / 2 * s + ox, y = (g.y0 + g.y1) / 2 * s + oy; if (x > 0 && y > 0 && x < W && y < H) label(g.name.replace("gletscher", "gl."), x, y, colors.ink, true); }
+  if (showStations && ST.length && (obsNow || sel.kind === "day")) ST.forEach((st, i) => {
+    const x = st.lo * COS * s + ox, y = -st.la * s + oy; if (x < -40 || y < -10 || x > W + 40 || y > H + 10) return;
+    const v = stationValue(i), has = !Number.isNaN(v);
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fillStyle = has ? (v > 0 ? colors.melt : colors.ice) : colors.panel; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = has ? colors.panel : colors["ink-2"]; ctx.stroke();
+    ctx.font = "600 11.5px Inter, system-ui, sans-serif"; const txt = `${st.a} ${has ? (v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + "°" : "–"}`, tw = ctx.measureText(txt).width;
+    if (x + 9 + tw > W - 4) { ctx.textAlign = "right"; label(txt, x - 9, y, colors.ink); ctx.textAlign = "left"; } else label(txt, x + 9, y, colors.ink);
+  });
+  const km = 50 / 111.2 * s, bx = W - 16 - km, by = H - 16; ctx.strokeStyle = colors.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + km, by); ctx.stroke();
+  ctx.textAlign = "right"; ctx.font = "500 11px Inter, system-ui, sans-serif"; label("50 km", bx + km, by - 9, colors.ink); ctx.textAlign = "left";
+}
+function splat() {
+  lbuf.fill(0); const { s, ox, oy } = view, k = s * dpr, X0 = ox * dpr, Y0 = oy * dpr, cw = D.d * COS * k, ch = D.d * k, PW = layer.width, PH = layer.height, M = packed.melt, I = packed.ice, off = offset;
+  for (let i = 0; i < N; i++) {
+    const x = wx[i] * k + X0, y = wy[i] * k + Y0; if (x < -cw || y < -ch || x >= PW || y >= PH) continue;
+    const melt = cz[i] < Zc[i] + off, c = melt ? M : I, px0 = Math.max(Math.floor(x), 0), py0 = Math.max(Math.floor(y), 0), px1 = Math.min(Math.max(px0 + 1, Math.ceil(x + cw)), PW), py1 = Math.min(Math.max(py0 + 1, Math.ceil(y + ch)), PH);
+    for (let py = py0; py < py1; py++) for (let p = py * PW + px0, e = py * PW + px1; p < e; p++) if (melt || lbuf[p] !== M) lbuf[p] = c;
+  }
+  lctx.putImageData(limg, 0, 0);
+}
+function label(t, x, y, color, center) { ctx.save(); if (center) ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeStyle = colors.map; ctx.lineJoin = "round"; ctx.strokeText(t, x, y); ctx.fillStyle = color; ctx.fillText(t, x, y); ctx.restore(); }
+function zoomAt(px, py, f) { const s2 = Math.min(Math.max(view.s * f, 150), 60000), k = s2 / view.s; view.ox = px - (px - view.ox) * k; view.oy = py - (py - view.oy) * k; view.s = s2; schedule(); }
+function flyTo(g) { const w = (g.x1 - g.x0) + 0.02, h = (g.y1 - g.y0) + 0.02; view.s = Math.min(W / w, H / h) * 0.7; view.ox = W / 2 - (g.x0 + g.x1) / 2 * view.s; view.oy = H / 2 - (g.y0 + g.y1) / 2 * view.s; schedule(); cv.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+const ptrs = new Map(); let lastDist = 0;
+cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.offsetX, e.offsetY]); cv.classList.add("drag"); lastDist = 0; $("tip").hidden = true; });
+cv.addEventListener("pointermove", e => {
+  if (!ptrs.has(e.pointerId)) { hover(e.offsetX, e.offsetY); return; }
+  const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.offsetX, e.offsetY]);
+  if (ptrs.size === 1) { view.ox += e.offsetX - prev[0]; view.oy += e.offsetY - prev[1]; schedule(); }
+  else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (lastDist) zoomAt((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, d / lastDist); lastDist = d; }
+});
+const up = e => { ptrs.delete(e.pointerId); lastDist = 0; if (!ptrs.size) cv.classList.remove("drag"); };
+cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up); cv.addEventListener("pointerleave", () => { $("tip").hidden = true; });
+cv.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+$("zin").onclick = () => zoomAt(W / 2, H / 2, 1.6); $("zout").onclick = () => zoomAt(W / 2, H / 2, 1 / 1.6); $("zfit").onclick = () => { fit(); schedule(); };
+function showTip(px, py, html) { const tip = $("tip"); tip.innerHTML = html; tip.hidden = false; const bw = $("mapbox").clientWidth; tip.style.left = Math.min(px + 14, bw - tip.offsetWidth - 6) + "px"; tip.style.top = Math.max(py - tip.offsetHeight - 10, 6) + "px"; }
+function hover(px, py) {
+  if (!N) return;
+  if (showStations) {   // stations first: they sit on top of the ice
+    let bi = -1, bd = 12;
+    ST.forEach((st, i) => { const d = Math.hypot(st.lo * COS * view.s + view.ox - px, -st.la * view.s + view.oy - py); if (d < bd) { bd = d; bi = i; } });
+    if (bi >= 0) {
+      const st = ST[bi], v = stationValue(bi), g = sel.kind === "day" ? dayG[sel.k] : sources[0].g;
+      showTip(px, py, `<b>${esc(st.n)}</b> <span style="color:var(--ink-2)">${st.a} · ${fmt(st.z)} m</span><br>` + (Number.isNaN(v) ? "No reading" : `${sel.kind === "day" ? "Daily mean" : "Now"}: <b>${v.toFixed(1)} °C</b><br>Implies 0 °C at ${fmt(st.z + v / g)} m`)); return;
+    }
+  }
+  const wxp = (px - view.ox) / view.s, wyp = (py - view.oy) / view.s, cellPx = D.d * COS * view.s;
+  if (cellPx >= 1.5) {
+    const gxp = (wxp / COS - D.lon0) / D.d, gyp = (D.lat0 + wyp) / D.d, R = Math.ceil(7 / cellPx); let best = -1, bd = 1e9;
+    for (let r = Math.floor(gyp) - R; r <= Math.floor(gyp) + R; r++) {
+      let lo = 0, hi = rowY.length - 1, ri = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (rowY[m] === r) { ri = m; break; } rowY[m] < r ? lo = m + 1 : hi = m - 1; }
+      if (ri < 0) continue; let a = rowStart[ri], b = rowStart[ri + 1] - 1; while (a < b) { const m = (a + b) >> 1; gx[m] < gxp - R ? a = m + 1 : b = m; }
+      for (let i = a; i < rowStart[ri + 1] && gx[i] <= gxp + R; i++) { const d = (gx[i] + .5 - gxp) ** 2 + (r + .5 - gyp) ** 2; if (d < bd) { bd = d; best = i; } }
+    }
+    if (best < 0) { $("tip").hidden = true; return; }
+    const g = glaciers[cg[best]], zl = Zc[best] + offset, melt = cz[best] < zl;
+    showTip(px, py, `<b>${esc(g.name || "Unnamed glacier")}</b> <span style="color:var(--ink-2)">${g.id} · ${g.area.toFixed(1)} km²</span><br>Ice at ${fmt(cz[best])} m, 0 °C line at ${fmt(zl)} m<br><span style="color:var(--${melt ? "melt" : "ice"});font-weight:600">${melt ? "Below the line: exposed to melt" : "Above the line: below freezing"}</span>`);
+  } else {
+    let best = null, ba = 1e9; const pad = 6 / view.s;
+    for (const g of glaciers) if (wxp >= g.x0 - pad && wxp <= g.x1 + pad && wyp >= g.y0 - pad && wyp <= g.y1 + pad) { const a = (g.x1 - g.x0 + 2 * pad) * (g.y1 - g.y0 + 2 * pad); if (a < ba) { ba = a; best = g; } }
+    if (!best) { $("tip").hidden = true; return; }
+    showTip(px, py, `<b>${esc(best.name || "Unnamed glacier")}</b> <span style="color:var(--ink-2)">${best.id} · ${best.area.toFixed(1)} km²</span><br>${best.n ? Math.round(100 * best.melt / best.n) : 0}% of its area below the 0 °C line`);
+  }
+}
+
+/* ---------- start ---------- */
+async function refreshLive() {
+  try { await loadObs(); buildStationSource(); if (N) { info = []; if (sel.kind === "now") applySelection(); } } catch (e) { console.warn(e); }
+}
+async function start() {
+  readColors(); renderNotes();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColors(); drawHeat(); schedule(); });
+  new MutationObserver(() => { readColors(); drawHeat(); schedule(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  new ResizeObserver(resize).observe($("mapbox"));
+  let wlast = 0; new ResizeObserver(() => { const w = $("heat").clientWidth; if (w !== wlast && dayShare) { wlast = w; drawHeat(); } }).observe($("hist"));
+  const cellsP = fetch("cells.json").then(r => r.json());
+  await loadHistory(); await loadObs(); buildStationSource();
+  D = await cellsP; await decodeCells();
+  dayShare = new Float32Array(ND); for (let k = 0; k < ND; k++) dayShare[k] = shareAt(dayZ[k]);
+  const dd = $("vdate"); dd.min = dayDate(0).toISOString().slice(0, 10); dd.max = dayDate(ND - 1).toISOString().slice(0, 10);
+  $("loading").hidden = true; applySelection(); drawHeat(); drawCharts();
+  setInterval(refreshLive, 600000);
+}
+start().catch(e => { $("loading").textContent = "Something went wrong loading the data."; console.error(e); });
+</script>
+</body>
+</html>
