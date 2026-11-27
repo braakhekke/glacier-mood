@@ -4,7 +4,8 @@
 
 - The 0 °C line comes from live temperatures at the 15 MeteoSwiss SwissMetNet stations above 2,000 m (height + temperature ÷ a cooling rate fitted to those stations each time).
 - Glaciers: Swiss Glacier Inventory 2023 (GLAMOS, doi 10.18750/inventory.sgi2023.r2026) on the Copernicus GLO-30 terrain model, 1.45 million 30 m cells.
-- Optional comparison with four well-known weather models (ECMWF IFS, GFS, ICON-EU, ICON-CH2) and, for past days, ERA5 reanalysis (all via Open-Meteo), loaded on demand.
+- Map styles: swisstopo grey map, SWISSIMAGE aerial photos for the selected year, or the Sentinel-2 image closest to the selected date (swissEO S2-SR through swisstopo's STAC, read straight from the cloud-optimised GeoTIFFs).
+- Snow depth from SLF's IMIS stations (live only) with a snow estimate in glacier tooltips.
 - History: daily mean temperatures 1993 to today. A baked `history.json` runs to the end of last year; the page adds this year live from MeteoSwiss.
 
 No server and no build step. Everything runs in the browser and reads CORS-open data from `data.geo.admin.ch` (MeteoSwiss) and `api.open-meteo.com`.
@@ -23,6 +24,8 @@ then open http://localhost:8000 (a plain `file://` open will not work, the page 
 | `cells.json` | glacier cells (position, height, glacier id), deflated | `scripts/make_cells.py`, needs the SGI 2023 shapefiles in `scripts/sgi23/` and network access to the DEM on AWS. Only when a new inventory is published. |
 | `history.json` | daily temperatures 1993 → end of last year, 15 stations | `scripts/fetch_history_raw.py` then `scripts/build_history.py`. The yearly workflow does this in January. |
 | `glamos.json` | yearly Swiss glacier volume change (GLAMOS Swisswide Glacier Mass Balance) | `scripts/build_glamos.py`. The yearly workflow does this too. |
+| `outlines.json` | thin glacier outlines (SGI 2023) shown when zoomed in | `scripts/build_outlines.py` (needs the SGI 2023 shapefile). Only with a new inventory. |
+| `snow.json` | latest snow depth at SLF IMIS stations | `scripts/build_snow.py`. SLF's API has no CORS header, so the hourly workflow refreshes this file. |
 | `snapshot.json` | fallback readings used only if live MeteoSwiss data cannot be reached | any recent `t_now` reading |
 
 Python scripts need `numpy`; `make_cells.py` also needs `pyshp`, `shapely`, `pyproj`, `rasterio`.

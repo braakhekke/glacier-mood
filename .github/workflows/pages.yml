@@ -2,6 +2,8 @@ name: Deploy site
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "7 * * * *"   # hourly: refresh the SLF snow depths and redeploy
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,10 +20,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fresh snow depths from SLF's IMIS stations
+        working-directory: scripts
+        run: python build_snow.py || echo "snow data not refreshed, using the committed snow.json"
       - name: Collect the static site
         run: |
           mkdir _site
-          cp index.html cells.json history.json glamos.json snapshot.json _site/
+          cp index.html imagery.js cells.json outlines.json history.json glamos.json snow.json snapshot.json _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
