@@ -66,6 +66,7 @@ async function satLibs() {
   SAT.libs = new Promise((res, rej) => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"; s.onload = () => res(window.GeoTIFF); s.onerror = rej; document.head.append(s); });
   return SAT.libs;
 }
+const asset = (f, suffix) => Object.entries(f.assets).find(([k]) => k.endsWith(suffix))[1].href;
 async function satFind(targetMs, bbox) {   // all mosaics near the date that cover the middle of the box, nearest first
   const [x0, y0, x1, y1] = bbox, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   for (const days of [12, 45, 120]) {
@@ -73,7 +74,7 @@ async function satFind(targetMs, bbox) {   // all mosaics near the date that cov
     const r = await fetch(`${STAC}&datetime=${a}/${b}&bbox=${cx - 0.01},${cy - 0.01},${cx + 0.01},${cy + 0.01}&limit=100`);
     if (!r.ok) continue;
     const feats = (await r.json()).features || [];
-    const items = feats.filter(f => pointInPoly(cx, cy, f.geometry.coordinates[0])).map(f => ({ id: f.id, t: Date.parse(f.properties.datetime), url: Object.entries(f.assets).find(([k]) => k.endsWith("tci_10m.tif"))[1].href, scl: Object.entries(f.assets).find(([k]) => k.endsWith("scl_20m.tif"))[1].href }));
+    const items = feats.filter(f => pointInPoly(cx, cy, f.geometry.coordinates[0])).map(f => ({ id: f.id, t: Date.parse(f.properties.datetime), url: asset(f, "tci_10m.tif"), b: { b02: asset(f, "_b02_10m.tif"), b03: asset(f, "_b03_10m.tif"), b04: asset(f, "_b04_10m.tif"), cm: asset(f, "cloudmask_10m.tif") } }));
     if (items.length) return items.sort((p, q) => Math.abs(p.t - targetMs) - Math.abs(q.t - targetMs));
   }
   return [];
@@ -83,18 +84,51 @@ async function satFile(url) {   // opens the GeoTIFF once; its overviews are the
   if (!f) { f = (async () => { const G = await satLibs(), tiff = await G.fromUrl(url), n = await tiff.getImageCount(), imgs = []; for (let i = 0; i < n; i++) imgs.push(await tiff.getImage(i)); return imgs; })(); SAT.files.set(url, f); }
   return f;
 }
-async function satCloud(item, bbox) {   // % of the box covered by cloud, cloud shadow or cirrus; 100 when the image does not reach the box
-  const imgs = await satFile(item.scl), full = imgs[0], [left, top] = full.getOrigin(), res0 = Math.abs(full.getResolution()[0]), W0 = full.getWidth();
+async function satWin(url, bbox, maxPx, kFixed) {   // one band over a box: values + where they sit (LV95); picks the overview so the box is at most maxPx wide, or uses kFixed
+  const imgs = await satFile(url), full = imgs[0], [left, top] = full.getOrigin(), res0 = Math.abs(full.getResolution()[0]), W0 = full.getWidth();
   const cs = [[bbox[0], bbox[1]], [bbox[2], bbox[1]], [bbox[0], bbox[3]], [bbox[2], bbox[3]]].map(([lo, la]) => lv95(lo, la));
   const E0 = Math.min(...cs.map(c => c[0])), E1 = Math.max(...cs.map(c => c[0])), N0 = Math.min(...cs.map(c => c[1])), N1 = Math.max(...cs.map(c => c[1]));
-  let k = 0; while (k < imgs.length - 1 && (E1 - E0) / (res0 * 2 ** k) > 220) k++;
+  let k = kFixed ?? 0; if (kFixed == null) while (k < imgs.length - 1 && Math.max(E1 - E0, N1 - N0) / (res0 * 2 ** k) > maxPx) k++;
   const img = imgs[k], w = img.getWidth(), h = img.getHeight(), res = res0 * W0 / w;
   const px0 = Math.max(0, Math.floor((E0 - left) / res)), px1 = Math.min(w, Math.ceil((E1 - left) / res)), py0 = Math.max(0, Math.floor((top - N1) / res)), py1 = Math.min(h, Math.ceil((top - N0) / res));
-  if (px1 <= px0 || py1 <= py0) return 100;
-  const a = (await img.readRasters({ window: [px0, py0, px1, py1], samples: [0] }))[0]; let valid = 0, cloud = 0;
-  for (let i = 0; i < a.length; i++) { const c = a[i]; if (c === 0) continue; valid++; if (c === 3 || c === 8 || c === 9 || c === 10) cloud++; }
-  const want = (Math.min(E1, left + w * res) - Math.max(E0, left)) / res * ((Math.min(N1, top) - Math.max(N0, top - h * res)) / res);   // share of the box the image really covers
-  return valid < 0.5 * Math.max(want, 1) ? 100 : 100 * cloud / valid;
+  if (px1 <= px0 || py1 <= py0) return null;
+  const a = (await img.readRasters({ window: [px0, py0, px1, py1], samples: [0] }))[0];
+  return { a, E0: left + px0 * res, N0: top - py0 * res, res, w: px1 - px0, h: py1 - py0, k };
+}
+const winAt = (r, E, N) => { const c = Math.floor((E - r.E0) / r.res), q = Math.floor((r.N0 - N) / r.res); return c < 0 || q < 0 || c >= r.w || q >= r.h ? -1 : r.a[q * r.w + c]; };
+function glacierSamples(bbox, max) {   // up to max glacier-cell positions inside the box (a plain grid of points when no glacier is in view)
+  const ymin = -mercY(bbox[3]), ymax = -mercY(bbox[1]), idx = []; for (let i = 0; i < N; i++) if (wx[i] >= bbox[0] && wx[i] <= bbox[2] && wy[i] >= ymin && wy[i] <= ymax) idx.push(i);
+  const step = Math.max(1, Math.floor(idx.length / max)), out = [];
+  for (let n = 0; n < idx.length; n += step) out.push([wx[idx[n]] + D.d / 2, invMerc(-wy[idx[n]] - D.d * MC / 2)]);
+  if (out.length < 20) { out.length = 0; for (let a = 0; a < 20; a++) for (let b = 0; b < 20; b++) out.push([bbox[0] + (bbox[2] - bbox[0]) * (a + .5) / 20, bbox[1] + (bbox[3] - bbox[1]) * (b + .5) / 20]); }
+  return out;
+}
+async function satCloud(item, bbox, pts) {   // % of the glacier cells under cloud, from swissEO's own cloud mask; 100 when the image does not reach them
+  const r = await satWin(item.b.cm, bbox, 700); if (!r) return 100;
+  let valid = 0, cloud = 0;
+  for (const [lo, la] of pts) { const [E, N] = lv95(lo, la), v = winAt(r, E, N); if (v < 0) continue; valid++; if (v > 0) cloud++; }
+  return valid < 0.5 * pts.length ? 100 : 100 * cloud / valid;
+}
+/* Snow or bare ice on every glacier cell, from the visible reflectance of the chosen image: snow is far brighter than ice. Shaded snow can read darker. */
+const SURF = { cls: null, gc: null, key: "", t: 0 };   // class per cell: 0 none, 1 snow, 2 bare ice, 3 dark or debris, 4 cloud
+const SURF_NAMES = ["no image", "snow", "bare ice", "dark or debris", "cloud"];
+async function surfaceBuild(it, bbox, key) {
+  const bw = (bbox[2] - bbox[0]) * 0.15, bh = (bbox[3] - bbox[1]) * 0.15, bb = [bbox[0] - bw, bbox[1] - bh, bbox[2] + bw, bbox[3] + bh];
+  const r2 = await satWin(it.b.b02, bb, 2400), cls = new Uint8Array(N), gc = new Int32Array(glaciers.length * 5);
+  if (r2) {
+    const [r3, r4, rc] = await Promise.all([satWin(it.b.b03, bb, 0, r2.k), satWin(it.b.b04, bb, 0, r2.k), satWin(it.b.cm, bb, 0, r2.k)]);
+    const ymin = -mercY(bb[3]), ymax = -mercY(bb[1]), hy = D.d * MC / 2, hx = D.d / 2;
+    for (let i = 0; i < N; i++) {
+      const wyi = wy[i]; if (wyi < ymin || wyi > ymax || wx[i] < bb[0] || wx[i] > bb[2]) continue;
+      const lon = wx[i] + hx, lat = invMerc(-wyi - hy), p = (lat * 3600 - 169028.66) / 10000, l = (lon * 3600 - 26782.5) / 10000;
+      const E = 2600072.37 + 211455.93 * l - 10938.51 * l * p - 0.36 * l * p * p - 44.54 * l * l * l, Nn = 1200147.07 + 308807.95 * p + 3745.25 * l * l + 76.63 * p * p - 194.56 * l * l * p + 119.79 * p * p * p;
+      const c = Math.floor((E - r2.E0) / r2.res), q = Math.floor((r2.N0 - Nn) / r2.res); if (c < 0 || q < 0 || c >= r2.w || q >= r2.h) continue;
+      const o = q * r2.w + c, a = r2.a[o], b = r3.a[o], d = r4.a[o]; let k = 0;
+      if (rc && rc.a[o] > 0) k = 4; else if (a && b && d) { const vis = (a + b + d) / 30000; k = vis >= 0.45 ? 1 : vis >= 0.15 ? 2 : 3; }
+      cls[i] = k; if (k) gc[cg[i] * 5 + k]++;
+    }
+  }
+  SURF.cls = cls; SURF.gc = gc; SURF.key = key; SURF.t = it.t;
 }
 async function satRead(item, bbox, groundPerPx) {   // RGB for the box, at the coarsest overview that is still sharp enough
   const imgs = await satFile(item.url), full = imgs[0], W0 = full.getWidth();
@@ -130,7 +164,7 @@ function paintSat(c, v, w, h, px, R) {   // warps the LV95 raster onto the merca
   o.cx.putImageData(img, 0, 0); c.imageSmoothingEnabled = true; c.drawImage(o.cv, 0, 0, cw * step, ch * step);
 }
 async function satEnsure(targetMs, v, w, h, px, onReady) {   // finds the mosaic and loads the pixels for this view; calls onReady when there is something new to draw
-  if (BG.mode !== "sat") return;
+  if (BG.mode !== "sat" && iceMode !== "surface") return;   // the satellite is needed for the picture or for the snow / ice overlay
   if (targetMs < S2_FIRST) { SAT.status = "Sentinel-2 starts in July 2015"; SAT.raster = null; onReady(); return; }
   const bbox = viewBoxLonLat(v, w, h), tkey = Math.floor(targetMs / 864e5);
   const key = `${tkey}|${bbox.map(q => q.toFixed(2)).join(",")}`;
@@ -139,8 +173,8 @@ async function satEnsure(targetMs, v, w, h, px, onReady) {   // finds the mosaic
   if (SAT.itemsKey !== ikey) {
     SAT.busy = true; SAT.status = "Looking for the nearest Sentinel-2 image…"; onReady();
     try {
-      const found = (await satFind(targetMs, bbox)).slice(0, 14);
-      await Promise.all(found.map(it => satCloud(it, bbox).then(c => { it.cloud = c; }).catch(() => { it.cloud = null; })));
+      const found = (await satFind(targetMs, bbox)).slice(0, 14), pts = glacierSamples(bbox, 2500);   // clouds elsewhere do not matter, only over the glaciers
+      await Promise.all(found.map(it => satCloud(it, bbox, pts).then(c => { it.cloud = c; }).catch(() => { it.cloud = null; })));
       const score = it => (it.cloud == null ? 100 : it.cloud) + 1.5 * Math.abs(it.t - targetMs) / 864e5;   // 1.5 points of cloud per day away
       const best = found.slice().sort((p, q) => score(p) - score(q))[0];
       SAT.items = found.sort((p, q) => p.t - q.t); SAT.idx = Math.max(0, SAT.items.indexOf(best)); SAT.itemsKey = ikey; SAT.key = ""; } catch (e) { SAT.items = []; console.warn("stac", e); }
@@ -151,17 +185,20 @@ async function satEnsure(targetMs, v, w, h, px, onReady) {   // finds the mosaic
   const gpp = 111320 * Math.cos(46.4 * RAD) / (v.s * px), rkey = `${it.id}|${bbox.map(q => q.toFixed(3)).join(",")}|${Math.round(Math.log2(gpp))}`;
   const days = Math.round((it.t - targetMs) / 864e5);
   SAT.status = `Sentinel-2${it.cloud != null ? `, ${Math.round(it.cloud)}% cloud` : ""}, ${new Date(it.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })} (${days === 0 ? "same day" : Math.abs(days) + (Math.abs(days) === 1 ? " day " : " days ") + (days < 0 ? "before" : "after")})`;
-  if (SAT.key === rkey) return;
+  const needRaster = BG.mode === "sat" && SAT.key !== rkey, skey = `${it.id}|${bbox.map(q => q.toFixed(2)).join(",")}`, needSurf = iceMode === "surface" && SURF.key !== skey;
+  if (!needRaster && !needSurf) return;
   SAT.busy = true;
   try {
-    // read a box 30% larger than the view so small pans do not need a new download
-    const pad = 0.3, bw = (bbox[2] - bbox[0]) * pad, bh = (bbox[3] - bbox[1]) * pad;
-    SAT.raster = await satRead(it, [bbox[0] - bw, bbox[1] - bh, bbox[2] + bw, bbox[3] + bh], gpp); SAT.key = rkey;
-  } catch (e) { console.warn("s2", e); SAT.status = "Could not read the Sentinel-2 image"; SAT.raster = null; }
+    if (needRaster) {   // read a box 30% larger than the view so small pans do not need a new download
+      const pad = 0.3, bw = (bbox[2] - bbox[0]) * pad, bh = (bbox[3] - bbox[1]) * pad;
+      SAT.raster = await satRead(it, [bbox[0] - bw, bbox[1] - bh, bbox[2] + bw, bbox[3] + bh], gpp); SAT.key = rkey;
+    }
+    if (needSurf) await surfaceBuild(it, bbox, skey);
+  } catch (e) { console.warn("s2", e); SAT.status = "Could not read the Sentinel-2 image"; if (needRaster) SAT.raster = null; }
   SAT.busy = false; onReady();
   if (SAT.pending) { const f = SAT.pending; SAT.pending = null; f(); }
 }
-function satStep(dir) { if (!SAT.items.length) return false; const n = SAT.idx + dir; if (n < 0 || n >= SAT.items.length) return false; SAT.idx = n; SAT.key = ""; return true; }
+function satStep(dir) { if (!SAT.items.length) return false; const n = SAT.idx + dir; if (n < 0 || n >= SAT.items.length) return false; SAT.idx = n; SAT.key = ""; SURF.key = ""; return true; }
 
 function paintBackground(c, v, w, h, px, ctxInfo) {   // the caller has set the Swiss border as the current path; picture is clipped to it
   const kind = BG.mode, onLoad = ctxInfo && ctxInfo.onLoad;

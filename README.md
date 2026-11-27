@@ -6,6 +6,7 @@
 - Glaciers: Swiss Glacier Inventory 2023 (GLAMOS, doi 10.18750/inventory.sgi2023.r2026) on the Copernicus GLO-30 terrain model, 1.45 million 30 m cells.
 - Map styles: swisstopo grey map, SWISSIMAGE aerial photos for the selected year, or the Sentinel-2 image closest to the selected date (swissEO S2-SR through swisstopo's STAC, read straight from the cloud-optimised GeoTIFFs).
 - 3D view: Mapterhorn open terrain (PMTiles over HTTP range requests), the chosen picture draped on it, glacier colours on top and the freezing line as a translucent sheet. Three.js from a CDN.
+- Glaciers can be shown as melt colour, as snow vs bare ice (from the reflectance bands of the clearest Sentinel-2 image near the date, cloud judged over the glacier cells only), as outline, or hidden. Hovering a glacier clears its colour so the picture shows through; clicking zooms to it.
 - Snow depth from SLF's IMIS stations (live only) with a snow estimate in glacier tooltips.
 - History: daily mean temperatures 1993 to today. A baked `history.json` runs to the end of last year; the page adds this year live from MeteoSwiss.
 

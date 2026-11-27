@@ -29,7 +29,7 @@ async function loadDem(reg, cols) {   // heights for the region: pick a zoom tha
   if (!V3.pm) V3.pm = new pmtiles.PMTiles(DEM_URL);
   let z = Math.max(5, Math.min(12, Math.ceil(Math.log2(cols * 1.5 * 360 / (512 * reg.lonSpan)))));
   const rng = zz => { const n = 2 ** zz, tx = l => Math.floor((l + 180) / 360 * n), ty = m => Math.floor((1 - m * RAD / Math.PI) / 2 * n); return { n, x0: tx(reg.lon0), x1: tx(reg.lon1), y0: ty(reg.mTop), y1: ty(reg.mBot) }; };
-  let q = rng(z); while ((q.x1 - q.x0 + 1) * (q.y1 - q.y0 + 1) > 60 && z > 5) q = rng(--z);
+  let q = rng(z); while ((q.x1 - q.x0 + 1) * (q.y1 - q.y0 + 1) > 90 && z > 5) q = rng(--z);
   const tiles = new Map(), jobs = [];
   for (let y = q.y0; y <= q.y1; y++) for (let x = q.x0; x <= q.x1; x++) jobs.push(demTile(z, x, y).then(t => tiles.set(x + "," + y, t)));
   await Promise.all(jobs);
@@ -48,10 +48,11 @@ function planeZ(lon, lat) {   // freezing-line height at a spot: the smooth stat
 
 function cellsCanvas(v, PW, PH) {   // every glacier cell in its melt / frozen colour, painted for this view
   const cvs = document.createElement("canvas"); cvs.width = PW; cvs.height = PH; const c = cvs.getContext("2d"), img = c.createImageData(PW, PH), u = new Uint32Array(img.data.buffer);
-  const cw = D.d * v.s, ch = D.d * MC * v.s, M = packed.melt, I = packed.ice;
+  const cw = D.d * v.s, ch = D.d * MC * v.s, M = packed.melt, I = packed.ice, surf = iceMode === "surface", pal = [0, packed.snow, packed.bare, packed.debris, packed.cloudc];
   for (let i = 0; i < N; i++) {
     const x = wx[i] * v.s + v.ox, y = wy[i] * v.s + v.oy; if (x < -cw || y < -ch || x >= PW || y >= PH) continue;
-    const melt = cz[i] < Zc[i] + off, col = melt ? M : I, px0 = Math.max(Math.floor(x), 0), py0 = Math.max(Math.floor(y), 0), px1 = Math.min(Math.max(px0 + 1, Math.ceil(x + cw)), PW), py1 = Math.min(Math.max(py0 + 1, Math.ceil(y + ch)), PH);
+    let melt, col; if (surf) { const q = SURF.cls ? SURF.cls[i] : 0; if (!q) continue; col = pal[q]; melt = true; } else { melt = cz[i] < Zc[i]; col = melt ? M : I; }
+    const px0 = Math.max(Math.floor(x), 0), py0 = Math.max(Math.floor(y), 0), px1 = Math.min(Math.max(px0 + 1, Math.ceil(x + cw)), PW), py1 = Math.min(Math.max(py0 + 1, Math.ceil(y + ch)), PH);
     for (let py = py0; py < py1; py++) for (let p = py * PW + px0, e = py * PW + px1; p < e; p++) if (melt || u[p] !== M) u[p] = col;
   }
   c.putImageData(img, 0, 0); return cvs;
@@ -62,7 +63,7 @@ async function paintTexture(reg, gen) {   // picture + glacier colours, in the s
   c.fillStyle = colors.map; c.fillRect(0, 0, TW, TH);
   c.beginPath(); BORDERW.forEach(([lo, la], i) => { const x = lo * v.s + v.ox, y = la * v.s + v.oy; i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.closePath(); c.fillStyle = colors.panel; c.fill();
   const t = targetMs(), info = { dark: false, targetMs: t };
-  if (BG.mode === "sat") {
+  if (BG.mode === "sat" || iceMode === "surface") {
     note3d("Fetching the Sentinel-2 image…");
     for (let i = 0; i < 300 && SAT.busy; i++) await sleep3(100);
     await satEnsure(t, v, TW, TH, 1, () => {}); for (let i = 0; i < 600 && SAT.busy; i++) await sleep3(100);
@@ -71,7 +72,7 @@ async function paintTexture(reg, gen) {   // picture + glacier colours, in the s
   }
   if (gen !== V3.gen) return null;
   paintBackground(c, v, TW, TH, 1, info);
-  if (iceMode === "fill") { c.globalAlpha = 0.68; c.drawImage(cellsCanvas(v, TW, TH), 0, 0); c.globalAlpha = 1; }
+  if (iceMode === "fill" || iceMode === "surface") { c.globalAlpha = iceMode === "surface" ? 0.9 : 0.68; c.drawImage(cellsCanvas(v, TW, TH), 0, 0); c.globalAlpha = 1; }
   if (OUT && iceMode !== "off") { c.beginPath(); for (const r of OUT) { const p = r.p; c.moveTo(p[0] * v.s + v.ox, p[1] * v.s + v.oy); for (let i = 2; i < p.length; i += 2) c.lineTo(p[i] * v.s + v.ox, p[i + 1] * v.s + v.oy); } c.lineWidth = Math.max(iceMode === "outline" ? 1.8 : 1, TW / (iceMode === "outline" ? 1100 : 1800)); c.strokeStyle = colors.ink; c.globalAlpha = iceMode === "outline" ? 0.95 : 0.7; c.stroke(); c.globalAlpha = 1; }
   return cvs;
 }
@@ -95,7 +96,7 @@ function placePlane() {
 }
 function noteFor3d() {
   const [lo, hi] = V3.planeRange || [0, 0], t = BG.mode === "sat" ? SAT.status : BG.mode === "aerial" ? `SWISSIMAGE ${aerialYear(targetMs()) === "current" ? "(latest)" : aerialYear(targetMs())}` : "swisstopo grey map";
-  note3d(`Blue sheet: the freezing line, ${Math.abs(hi - lo) < 30 ? fmt((lo + hi) / 2) : `${fmt(lo)}–${fmt(hi)}`} m. Ground: Mapterhorn terrain, ${t}.`);
+  note3d(`Blue sheet: the freezing line, ${Math.abs(hi - lo) < 30 ? fmt((lo + hi) / 2) : `${fmt(lo)}–${fmt(hi)}`} m. Ground: Mapterhorn terrain (30 m model, a point every ${Math.max(30, Math.round(V3.spacing))} m), ${t}.${V3.spacing > 45 ? " Zoom the map in before switching to 3D for the full 30 m detail." : ""}`);
 }
 
 async function build3D(full) {
@@ -111,7 +112,8 @@ async function build3D(full) {
   }
   if (full) {
     note3d("Loading Mapterhorn terrain…");
-    const reg = V3.region = regionFromView(), NX = 640, NY = Math.max(40, Math.round(NX * reg.mSpan / reg.lonSpan)), sample = await loadDem(reg, NX);
+    const reg = V3.region = regionFromView(), spacing = reg.lonSpan * 111320 * Math.cos(46.4 * RAD) / 1500;   // metres between mesh points
+    V3.spacing = spacing; const NX = 1500, NY = Math.max(40, Math.round(NX * reg.mSpan / reg.lonSpan)), sample = await loadDem(reg, NX);
     if (gen !== V3.gen) return;
     if (V3.terrain) { V3.scene.remove(V3.terrain); V3.terrain.geometry.dispose(); V3.scene.remove(V3.plane); V3.plane.geometry.dispose(); V3.scene.remove(V3.grid); V3.grid.geometry.dispose(); }
     const n = (NX + 1) * (NY + 1), pos = new Float32Array(n * 3), uv = new Float32Array(n * 2), idx = new Uint32Array(NX * NY * 6); V3.h = new Float32Array(n);
