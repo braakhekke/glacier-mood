@@ -11,7 +11,7 @@
 :root {
   color-scheme: light;
   --bg: #f3f5f7; --panel: #ffffff; --ink: #14202b; --ink-2: #4b5b69; --line: #d5dce2;
-  --map: #e6ebef; --border: #8fa1b0; --heat0: #e9eef2;
+  --map: #e6ebef; --border: #8fa1b0; --h0: #1e4f8f; --h1: #a8c6e6; --h2: #f3e6cf; --h3: #ea7a3c; --h4: #8c1c0e;
   --melt: #d9480f; --ice: #2f6fb3; --ice-soft: #b9d3ea; --sel: #e8f0f8;
   --font-head: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -20,13 +20,13 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #0e151c; --panel: #16202a; --ink: #e8eef3; --ink-2: #9fb0be; --line: #2a3845;
-    --map: #101a23; --border: #4a5d6d; --heat0: #1d2a35; --melt: #ff8a4c; --ice: #6fb0ec; --ice-soft: #2a4560; --sel: #1e2f3e;
+    --map: #101a23; --border: #4a5d6d; --h0: #2c64a8; --h1: #6b9ccc; --h2: #d9c9ae; --h3: #ff8a4c; --h4: #ffd0b0; --melt: #ff8a4c; --ice: #6fb0ec; --ice-soft: #2a4560; --sel: #1e2f3e;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0e151c; --panel: #16202a; --ink: #e8eef3; --ink-2: #9fb0be; --line: #2a3845;
-  --map: #101a23; --border: #4a5d6d; --heat0: #1d2a35; --melt: #ff8a4c; --ice: #6fb0ec; --ice-soft: #2a4560; --sel: #1e2f3e;
+  --map: #101a23; --border: #4a5d6d; --h0: #2c64a8; --h1: #6b9ccc; --h2: #d9c9ae; --h3: #ff8a4c; --h4: #ffd0b0; --melt: #ff8a4c; --ice: #6fb0ec; --ice-soft: #2a4560; --sel: #1e2f3e;
 }
 * { box-sizing: border-box; }
 html { background: var(--bg); }
@@ -116,7 +116,8 @@ ul.list button:focus-visible { outline: 2px solid var(--ice); }
 .chart h3 { font: 600 14px/1.3 var(--font-body); margin: 0 0 2px; }
 .chart p { margin: 0 0 6px; font-size: 12.5px; color: var(--ink-2); }
 .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); flex-wrap: wrap; }
-.scale .ramp { width: 160px; height: 10px; border-radius: 2px; background: linear-gradient(90deg, var(--heat0), var(--melt)); }
+.scale .ramp { position: relative; width: 260px; height: 12px; border-radius: 2px; background: linear-gradient(90deg, var(--h0) 0%, var(--h1) 15%, var(--h2) 40%, var(--h3) 70%, var(--h4) 100%); margin-bottom: 14px; }
+.scale .ramp b { position: absolute; top: 14px; font-weight: 400; font-size: 11px; transform: translateX(-50%); white-space: nowrap; }
 details.tbl { font-size: 13px; color: var(--ink-2); }
 details.tbl summary { cursor: pointer; }
 .tblwrap { overflow-x: auto; max-height: 260px; margin-top: 8px; }
@@ -182,7 +183,7 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
       <section class="panel" id="srcpanel">
         <h2>Where is the 0 °C line?</h2>
         <ul class="list" id="srcs"></ul>
-        <div class="models"><button class="chip" id="loadmodels">Compare with eight weather models</button></div>
+        <div class="models"><button class="chip" id="loadmodels">Compare with four weather models</button></div>
         <p class="hint" id="srchint"></p>
       </section>
       <section class="panel what">
@@ -200,7 +201,7 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
       <p class="hint" style="margin:0">Each cell is one day: how much of Switzerland's glacier ice lay below the 0 °C line (daily mean temperature, 15 MeteoSwiss stations above 2,000 m). Click a day to see it on the map.</p>
     </div>
     <div class="strip"><canvas id="heat" aria-label="Heat strip of the share of glacier ice below the zero degree line, one cell per day since 1993"></canvas><div class="tip" id="htip" hidden></div></div>
-    <div class="scale"><span>0%</span><span class="ramp"></span><span>100% of the ice below the line</span><span style="margin-left:12px"><i class="sw" style="background:repeating-linear-gradient(45deg,var(--line) 0 2px,transparent 2px 4px)"></i> no data</span></div>
+    <div class="scale"><span>Share of the ice below the 0 °C line:</span><span class="ramp"><b style="left:0;transform:none">0%</b><b style="left:15%">2%</b><b style="left:40%">16%</b><b style="left:70%">49%</b><b style="left:100%;transform:translateX(-100%)">100%</b></span><span style="margin-left:12px"><i class="sw" style="background:var(--h0)"></i> frozen day</span><span><i class="sw" style="background:var(--h4)"></i> worst days</span><span style="margin-left:12px"><i class="sw" style="background:repeating-linear-gradient(45deg,var(--line) 0 2px,transparent 2px 4px)"></i> no data</span></div>
     <div class="charts">
       <div class="chart" id="chA"></div>
       <div class="chart" id="chB"></div>
@@ -219,7 +220,7 @@ const SMN = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn";
 const LAT0 = 45.7, LON0 = 6.7, STEP = 0.05, NLA = 29, NLO = 79, KH = 60;       // lattice for the smooth 0 °C field
 // typical miss of the station line (K), by month, from leaving each station out 1993-2025
 const SIGMA_K = [1.6, 1.6, 1.56, 1.56, 1.56, 1.0, 1.0, 1.0, 1.2, 1.2, 1.2, 1.6];
-const MODELS = [["meteoswiss_icon_ch1","ICON-CH1 (MeteoSwiss, 1 km)"],["meteoswiss_icon_ch2","ICON-CH2 (MeteoSwiss, 2 km)"],["icon_d2","ICON-D2 (DWD, 2 km)"],["icon_eu","ICON-EU (DWD, 7 km)"],["ecmwf_ifs025","ECMWF IFS (25 km)"],["gfs_seamless","GFS (NOAA)"],["arpege_europe","ARPEGE (Météo-France)"],["arome_france","AROME (Météo-France, 1.3 km)"]];
+const MODELS = [["ecmwf_ifs","ECMWF IFS (9 km)"],["gfs_seamless","GFS (NOAA)"],["icon_eu","ICON-EU (DWD, 7 km)"],["meteoswiss_icon_ch2","ICON-CH2 (MeteoSwiss, 2 km)"]];
 const TIERS = [
   { max: 1,   tag: "Good day",     c: 0,  title: "A good day for the glaciers",     msg: (z, p, km) => `Frozen solid. The 0 °C line sits at ${fmt(z)} m, below almost none of the ice.` },
   { max: 10,  tag: "Fair day",     c: 25, title: "A fair day for the glaciers",     msg: (z, p, km) => `Only the lowest tongues feel any warmth. The line is at ${fmt(z)} m and about ${fmt(km)} km² of ice is under it.` },
@@ -247,10 +248,10 @@ let W = 0, H = 0, dpr = 1, raf = 0, layer, lctx, limg, lbuf;
 
 function readColors() {
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ["melt", "ice", "border", "ink", "ink-2", "panel", "map", "heat0", "line", "bg"]) colors[k] = cs.getPropertyValue("--" + k).trim();
+  for (const k of ["melt", "ice", "border", "ink", "ink-2", "panel", "map", "line", "bg", "h0", "h1", "h2", "h3", "h4"]) colors[k] = cs.getPropertyValue("--" + k).trim();
   const c = document.createElement("canvas"); c.width = c.height = 1; const x = c.getContext("2d", { willReadFrequently: true });
   const rgb = col => { x.clearRect(0, 0, 1, 1); x.fillStyle = col; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data]; };
-  for (const k of ["melt", "ice", "heat0"]) { const p = rgb(colors[k]); colors[k + "_rgb"] = p; packed[k] = ((255 << 24) | (p[2] << 16) | (p[1] << 8) | p[0]) >>> 0; }
+  for (const k of ["melt", "ice", "h0", "h1", "h2", "h3", "h4"]) { const p = rgb(colors[k]); colors[k + "_rgb"] = p; packed[k] = ((255 << 24) | (p[2] << 16) | (p[1] << 8) | p[0]) >>> 0; }
 }
 
 /* ---------- helpers: dates, fits ---------- */
@@ -369,7 +370,7 @@ async function loadDayModels() {
   const q = `latitude=${idx.map(i => ST[i].la).join(",")}&longitude=${idx.map(i => ST[i].lo).join(",")}&start_date=${day}&end_date=${day}&hourly=temperature_2m&timezone=UTC`;
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const jobs = [["ERA5 reanalysis (ECMWF, 25 km)", `https://archive-api.open-meteo.com/v1/archive?${q}&models=era5`],
-    ...MODELS.concat([["ecmwf_ifs", "ECMWF IFS (9 km)"]]).map(([id, name]) => [name, `https://historical-forecast-api.open-meteo.com/v1/forecast?${q}&models=${id}`])];
+    ...MODELS.map(([id, name]) => [name, `https://historical-forecast-api.open-meteo.com/v1/forecast?${q}&models=${id}`])];
   for (const [name, url] of jobs) {
     let ok = false;
     try {
@@ -486,7 +487,7 @@ function renderSources() {
   const ul = $("srcs"); ul.textContent = "";
   const lm = $("loadmodels");
   if (day) {
-    lm.hidden = daySrc.loaded; lm.disabled = modelsBusy; lm.textContent = modelsBusy ? "Loading…" : "Compare with ERA5 and weather models";
+    lm.hidden = daySrc.loaded; lm.disabled = modelsBusy; lm.textContent = modelsBusy ? "Loading…" : "Compare with ERA5 and four weather models";
     daySrc.list.forEach((S, k) => {
       const li = document.createElement("li"), b = document.createElement("button"); b.setAttribute("aria-pressed", k === dayActive);
       b.innerHTML = `<span class="row"><span>${esc(S.name)}</span><span>${fmt(S.z + offset)} m</span></span><span class="row2">${pf(shareAt(S.z + offset))}% of ice below · ${k === 0 ? "typical miss" : "error vs stations"} ${S.rmse.toFixed(1)} K${Math.abs(S.bias) >= 0.1 ? `, bias ${S.bias > 0 ? "+" : "−"}${Math.abs(S.bias).toFixed(1)} K` : ""}</span>`;
@@ -499,7 +500,7 @@ function renderSources() {
     if (daySrc.loaded && daySrc.missing.length) $("srchint").textContent += ` No archived data for this date from: ${daySrc.missing.join(", ")}.`;
     return;
   }
-  lm.disabled = modelsBusy; lm.textContent = modelsBusy ? "Loading models…" : "Compare with eight weather models";
+  lm.disabled = modelsBusy; lm.textContent = modelsBusy ? "Loading models…" : "Compare with four weather models";
   $("loadmodels").hidden = sources.length > 1;
   if (!info.length) computeInfo();
   sources.forEach((S, k) => {
@@ -527,28 +528,41 @@ function renderNotes() {
 }
 
 /* ---------- history charts ---------- */
-const HEAT = { x0: 34, top: 16, row: 9, colw: 0 };
-function heatGeom() { const c = $("heat"), w = c.clientWidth || 900; HEAT.colw = (w - HEAT.x0 - 4) / 366; return { w, h: HEAT.top + (dayDate(ND - 1).getUTCFullYear() - 1992) * HEAT.row + 4 }; }
-const heatColor = p => { const t = Math.sqrt(Math.min(Math.max(p, 0), 1)), a = colors.heat0_rgb, b = colors.melt_rgb; return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`; };
+const HEAT = { x0: 34, top: 22, row: 15, right: 118, colw: 0 };
+const BAD = 0.3;   // a bad or terrible day: at least 30% of the ice below the line
+function heatGeom() { const c = $("heat"), w = c.clientWidth || 900; HEAT.colw = (w - HEAT.x0 - HEAT.right) / 366; return { w, h: HEAT.top + (dayDate(ND - 1).getUTCFullYear() - 1992) * HEAT.row + 4 }; }
+const HSTOP = [0, 0.15, 0.4, 0.7, 1];   // positions along the scale; it runs on the square root of the share so small shares stay visible
+const heatColor = p => {
+  const t = Math.sqrt(Math.min(Math.max(p, 0), 1)); let i = 0; while (i < 3 && t > HSTOP[i + 1]) i++;
+  const a = colors["h" + i + "_rgb"], b = colors["h" + (i + 1) + "_rgb"], f = (t - HSTOP[i]) / (HSTOP[i + 1] - HSTOP[i]);
+  return `rgb(${a.map((v, j) => Math.round(v + (b[j] - v) * f)).join(",")})`;
+};
 function drawHeat() {
   const c = $("heat"), { w, h } = heatGeom(), r = window.devicePixelRatio || 1; c.width = w * r; c.height = h * r; c.style.height = h + "px";
   const g = c.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h);
   g.font = "11px Inter, system-ui, sans-serif"; g.fillStyle = colors["ink-2"]; g.textBaseline = "middle";
-  const y0 = dayDate(0).getUTCFullYear(), y1 = dayDate(ND - 1).getUTCFullYear();
+  const y0 = dayDate(0).getUTCFullYear(), y1 = dayDate(ND - 1).getUTCFullYear(), ys = yearStats(), mx = Math.max(...ys.map(r => r.bad), 1);
+  const xr = HEAT.x0 + 366 * HEAT.colw + 12, bw = HEAT.right - 12 - 34;
   for (let y = y0; y <= y1; y++) {
     const yy = HEAT.top + (y - y0) * HEAT.row;
-    if (y % 5 === 0 || y === y0) { g.textAlign = "right"; g.fillStyle = colors["ink-2"]; g.fillText(String(y), HEAT.x0 - 6, yy + HEAT.row / 2); }
+    g.textAlign = "right"; g.fillStyle = colors["ink-2"]; g.fillText(String(y), HEAT.x0 - 6, yy + HEAT.row / 2 - .5);
     const k0 = dayIndex(new Date(Date.UTC(y, 0, 1)));
     for (let d = 0; d < 366; d++) {
       const k = k0 + d, dt = dayDate(k); if (dt.getUTCFullYear() !== y || k < 0 || k >= ND) continue;
-      const doy = Math.round((Date.UTC(y, dt.getUTCMonth(), dt.getUTCDate()) - Date.UTC(y, 0, 1)) / DAY);
-      const x = HEAT.x0 + doy * HEAT.colw;
-      if (Number.isNaN(dayZ[k])) { g.fillStyle = colors.line; g.fillRect(x, yy, HEAT.colw + .3, HEAT.row - 1); g.fillStyle = colors.bg; g.fillRect(x, yy + 3, HEAT.colw + .3, 1.5); continue; }
-      g.fillStyle = heatColor(dayShare[k]); g.fillRect(x, yy, HEAT.colw + .3, HEAT.row - 1);
+      const doy = Math.round((Date.UTC(y, dt.getUTCMonth(), dt.getUTCDate()) - Date.UTC(y, 0, 1)) / DAY), x = HEAT.x0 + doy * HEAT.colw;
+      if (Number.isNaN(dayZ[k])) { g.fillStyle = colors.line; g.fillRect(x, yy, HEAT.colw + .3, HEAT.row - 2); g.fillStyle = colors.bg; g.fillRect(x, yy + 5, HEAT.colw + .3, 2); continue; }
+      g.fillStyle = heatColor(dayShare[k]); g.fillRect(x, yy, HEAT.colw + .3, HEAT.row - 2);
     }
+    // end of year: how many bad or terrible days
+    const t = ys[y - y0], so = !t.full;
+    g.globalAlpha = so ? 0.55 : 1; g.fillStyle = colors.melt; g.fillRect(xr, yy + 1, Math.max(bw * t.bad / mx, 1), HEAT.row - 4); g.globalAlpha = 1;
+    g.textAlign = "right"; g.fillStyle = colors.ink; g.font = "600 11px Inter, system-ui, sans-serif"; g.fillText(String(t.bad) + (so ? "+" : ""), w - 2, yy + HEAT.row / 2 - .5); g.font = "11px Inter, system-ui, sans-serif";
   }
-  g.textAlign = "left"; g.fillStyle = colors["ink-2"];
-  ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].forEach((m, i) => { const doy = Math.round((Date.UTC(2001, i, 1) - Date.UTC(2001, 0, 1)) / DAY); g.fillText(m, HEAT.x0 + doy * HEAT.colw, 7); });
+  g.fillStyle = colors.bg; g.globalAlpha = 0.9;   // thin month dividers
+  for (let m = 1; m < 12; m++) { const doy = Math.round((Date.UTC(2001, m, 1) - Date.UTC(2001, 0, 1)) / DAY); g.fillRect(HEAT.x0 + doy * HEAT.colw - .5, HEAT.top, 1, (y1 - y0 + 1) * HEAT.row); }
+  g.globalAlpha = 1; g.textAlign = "left"; g.fillStyle = colors["ink-2"];
+  ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].forEach((m, i) => { const doy = Math.round((Date.UTC(2001, i, 1) - Date.UTC(2001, 0, 1)) / DAY); g.fillText(m, HEAT.x0 + doy * HEAT.colw + 2, 9); });
+  g.textAlign = "left"; g.font = "600 11px Inter, system-ui, sans-serif"; g.fillStyle = colors.ink; g.fillText("Bad days", xr, 9);
   c._ready = true; markHeat();
 }
 function markHeat() {
@@ -560,23 +574,27 @@ function markHeat() {
 function heatHit(e) {
   const r = $("heat").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, y0 = dayDate(0).getUTCFullYear();
   const yr = y0 + Math.floor((y - HEAT.top) / HEAT.row), doy = Math.floor((x - HEAT.x0) / HEAT.colw);
-  if (yr < y0 || doy < 0 || doy > 365) return -1;
-  const k = dayIndex(new Date(Date.UTC(yr, 0, 1 + doy))); return dayDate(k).getUTCFullYear() === yr && k >= 0 && k < ND ? k : -1;
+  if (yr < y0 || yr > dayDate(ND - 1).getUTCFullYear() || y < HEAT.top) return { k: -1, yr: null };
+  if (doy > 365) return { k: -1, yr };
+  if (doy < 0) return { k: -1, yr: null };
+  const k = dayIndex(new Date(Date.UTC(yr, 0, 1 + doy))); return { k: dayDate(k).getUTCFullYear() === yr && k >= 0 && k < ND ? k : -1, yr: null };
 }
 $("heat").addEventListener("pointermove", e => {
-  const k = heatHit(e), t = $("htip"); if (k < 0) { t.hidden = true; return; }
-  t.innerHTML = Number.isNaN(dayZ[k]) ? `<b>${dayLabel(k, true)}</b><br>Too few stations reported` : `<b>${dayLabel(k, true)}</b><br>0 °C line ${fmt(dayZ[k])} m<br>${pf(dayShare[k])}% of the ice below it`;
+  const { k, yr } = heatHit(e), t = $("htip");
+  if (k < 0 && yr == null) { t.hidden = true; return; }
+  if (k < 0) { const r = yearStats().find(q => q.y === yr); t.innerHTML = `<b>${yr}</b><br>${r.bad} bad or terrible days${r.full ? "" : " so far"}<br><span style="color:var(--ink-2)">at least 30% of the ice below the 0 °C line</span>`; }
+  else t.innerHTML = Number.isNaN(dayZ[k]) ? `<b>${dayLabel(k, true)}</b><br>Too few stations reported` : `<b>${dayLabel(k, true)}</b><br>0 °C line ${fmt(dayZ[k])} m<br>${pf(dayShare[k])}% of the ice below it`;
   t.hidden = false; const r = $("heat").getBoundingClientRect(); t.style.left = Math.min(e.clientX - r.left + 14, r.width - t.offsetWidth - 4) + "px"; t.style.top = Math.max(e.clientY - r.top - t.offsetHeight - 8, 0) + "px";
 });
 $("heat").addEventListener("pointerleave", () => { $("htip").hidden = true; });
-$("heat").addEventListener("click", e => { const k = heatHit(e); if (k >= 0 && !Number.isNaN(dayZ[k])) selectDay(k); });
+$("heat").addEventListener("click", e => { const { k } = heatHit(e); if (k >= 0 && !Number.isNaN(dayZ[k])) selectDay(k); });
 
 function yearStats() {
   const y0 = dayDate(0).getUTCFullYear(), y1 = dayDate(ND - 1).getUTCFullYear(), out = [];
   for (let y = y0; y <= y1; y++) {
     let sum = 0, n = 0, bad = 0, nd = 0;
     for (let k = dayIndex(new Date(Date.UTC(y, 0, 1))); k <= dayIndex(new Date(Date.UTC(y, 11, 31))); k++) {
-      if (k < 0 || k >= ND || Number.isNaN(dayZ[k])) continue; nd++; if (dayShare[k] >= 0.1) bad++;
+      if (k < 0 || k >= ND || Number.isNaN(dayZ[k])) continue; nd++; if (dayShare[k] >= BAD) bad++;
       const mo = dayDate(k).getUTCMonth(); if (mo >= 5 && mo <= 8) { sum += dayZ[k]; n++; }
     }
     out.push({ y, summer: n >= 100 ? sum / n : NaN, bad, nd, full: y < y1 || (dayDate(ND - 1).getUTCMonth() === 11 && dayDate(ND - 1).getUTCDate() === 31) });
@@ -602,8 +620,8 @@ function lineChart(el, title, sub, pts, unit, fmtv) {   // pts: [{y,v,hollow}]
 function drawCharts() {
   const ys = yearStats();
   lineChart($("chA"), "Summer 0 °C line", "Average height of the 0 °C line, June to September.", ys.map(r => ({ y: r.y, v: r.summer })), "m", v => fmt(v));
-  lineChart($("chB"), "Days with ice below the line", "Days per year when at least a tenth of the ice lay below the 0 °C line.", ys.map(r => ({ y: r.y, v: r.nd ? r.bad * (r.full ? 365 / r.nd : 1) : NaN, hollow: !r.full })), "days", v => fmt(v));
-  $("tbl").innerHTML = `<table><tr><th>Year</th><th>Summer 0 °C line (m)</th><th>Days with ≥10% of ice below</th><th>Days with data</th></tr>${ys.map(r => `<tr><td>${r.y}</td><td>${Number.isNaN(r.summer) ? "–" : fmt(r.summer)}</td><td>${r.bad}${r.full ? "" : " so far"}</td><td>${r.nd}</td></tr>`).join("")}</table>`;
+  lineChart($("chB"), "Bad days per year", "Days when at least 30% of the ice lay below the 0 °C line (bad or terrible days).", ys.map(r => ({ y: r.y, v: r.nd ? r.bad * (r.full ? 365 / r.nd : 1) : NaN, hollow: !r.full })), "days", v => fmt(v));
+  $("tbl").innerHTML = `<table><tr><th>Year</th><th>Summer 0 °C line (m)</th><th>Bad days (≥30% of ice below)</th><th>Days with data</th></tr>${ys.map(r => `<tr><td>${r.y}</td><td>${Number.isNaN(r.summer) ? "–" : fmt(r.summer)}</td><td>${r.bad}${r.full ? "" : " so far"}</td><td>${r.nd}</td></tr>`).join("")}</table>`;
 }
 
 /* ---------- selection controls ---------- */

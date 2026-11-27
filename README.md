@@ -4,7 +4,7 @@
 
 - The 0 °C line comes from live temperatures at the 15 MeteoSwiss SwissMetNet stations above 2,000 m (height + temperature ÷ a cooling rate fitted to those stations each time).
 - Glaciers: Swiss Glacier Inventory 2023 (GLAMOS, doi 10.18750/inventory.sgi2023.r2026) on the Copernicus GLO-30 terrain model, 1.45 million 30 m cells.
-- Optional comparison with eight weather models (Open-Meteo), loaded on demand.
+- Optional comparison with four well-known weather models (ECMWF IFS, GFS, ICON-EU, ICON-CH2) and, for past days, ERA5 reanalysis (all via Open-Meteo), loaded on demand.
 - History: daily mean temperatures 1993 to today. A baked `history.json` runs to the end of last year; the page adds this year live from MeteoSwiss.
 
 No server and no build step. Everything runs in the browser and reads CORS-open data from `data.geo.admin.ch` (MeteoSwiss) and `api.open-meteo.com`.
