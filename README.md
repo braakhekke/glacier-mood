@@ -1,4 +1,4 @@
-# Zero Melt
+# Glacier Mood
 
 **Is the ice having a good day?** A static website that maps the freezing line (0 °C) over every Swiss glacier and says how much ice is currently below it, with a strip of every day since 1993 next to GLAMOS's yearly ice volume change.
 

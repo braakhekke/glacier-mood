@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Zero Melt</title>
+<title>Glacier Mood</title>
 <meta name="description" content="Is today a good day for Switzerland's glaciers? See where the freezing line sits over every glacier right now, and every day back to 1993.">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
 <style>
-/* Zero Melt, outdoor-brand look: a dark alpine hero with a mountain edge, a sticky map with floating glass controls,
+/* Glacier Mood, outdoor-brand look: a dark alpine hero with a mountain edge, a sticky map with floating glass controls,
    clean cards, condensed athletic headlines (Barlow Condensed) and Inter for reading. */
 :root {
   color-scheme: light;
@@ -209,9 +209,9 @@ details.nerd p { margin: 10px 0 0; }
 <header class="hero" id="verdict" aria-live="polite">
   <svg class="ridge" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true"><path class="back" d="M0 110V62L110 30l90 42 120-56 110 64 100-34 130 42 120-62 110 50 120-30 110 56 150-48 70 30V110Z"/><path class="front" d="M0 110V84l140-34 100 40 150-52 120 48 110-30 150 46 130-58 110 52 120-34 110 42 100-28V110Z"/></svg>
   <div class="hero-in">
-    <nav class="brand" aria-label="Zero Melt">
+    <nav class="brand" aria-label="Glacier Mood">
       <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="34" cy="14" r="6.5" fill="var(--sun)"/><path d="M3 42 L19 13 L28 30 L33 22 L45 42 Z" fill="#eaf4fa"/><path d="M14.5 23.5 L19 13 L23.5 23 L20 21 L17.5 25Z" fill="var(--ice)"/></svg>
-      <span class="word">Zero Melt</span><span class="slogan">Is the ice having a good time?</span>
+      <span class="word">Glacier Mood</span><span class="slogan">Is the ice having a good time?</span>
     </nav>
     <div class="hero-grid">
       <div class="hero-text">
@@ -296,7 +296,7 @@ details.nerd p { margin: 10px 0 0; }
   <section class="about" id="notes"></section>
 </main>
 
-<footer class="foot"><div><b>Zero Melt</b><span>Open data: MeteoSwiss, GLAMOS, swisstopo, Copernicus, SLF, Open-Meteo.</span></div></footer>
+<footer class="foot"><div><b>Glacier Mood</b><span>Open data: MeteoSwiss, GLAMOS, swisstopo, Copernicus, SLF, Open-Meteo.</span></div></footer>
 
 <script src="imagery.js"></script>
 <script src="map3d.js"></script>
@@ -571,7 +571,7 @@ function renderLine(c) {
 }
 function renderNotes() {
   $("notes").innerHTML =
-    `<p><b>Warm air is not always melt.</b> Snow cover, shade and wind hold ice back. Zero Melt shows how exposed the ice is, not how much is melting this minute.</p>` +
+    `<p><b>Warm air is not always melt.</b> Snow cover, shade and wind hold ice back. Glacier Mood shows how exposed the ice is, not how much is melting this minute.</p>` +
     `<details class="nerd"><summary>How it works and where the data comes from</summary>` +
     `<p>The freezing line is the height where the air reaches 0 °C. It comes from the ${ST.length} MeteoSwiss mountain stations above 2,000 m (station height + temperature ÷ a cooling rate fitted to the stations, 4 to 8 °C per km) and is checked against every glacier. It typically misses by about 1.0 K in summer and 1.6 K in winter, roughly 160 to 280 m. In hot spells it can sit above the highest station (3,571 m) and is then extended from the fitted rate.</p>` +
     `<p>History uses daily averages and at least 8 stations a day. Glaciers stay at their 2023 outlines and 30 m terrain heights, so past exposure is understated and areas are not comparable across years. A bad day has at least 30% of the ice under the line. Ice change is GLAMOS's yearly volume change (glacier year, October to September${GLINFO ? `, release ${GLINFO.release}` : ""}). Snow and bare ice are told apart by brightness in the Sentinel-2 bands; snow in deep shade can read as ice.</p>` +
