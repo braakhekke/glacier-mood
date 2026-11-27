@@ -223,7 +223,7 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
         <div class="view3d" id="view3d" hidden><div class="ctl3d"><label for="exag">Height <output id="exagout" for="exag">1.5×</output></label><input id="exag" type="range" min="1" max="4" step="0.25" value="1.5"></div><p class="note3d" id="note3d"></p></div>
         <div class="loading" id="loading">Counting 1.4 million bits of ice…</div>
         <div class="mapctl"><button class="stbtn" id="stbtn" aria-pressed="false">Stations</button><button class="stbtn" id="snbtn" aria-pressed="false" hidden>Snow</button><button class="stbtn" id="b3d" aria-pressed="false">3D</button><label class="bgpick selwrap"><span class="sr">Map style</span><select id="bgsel" class="sel"><option value="grey">Grey map</option><option value="sat">Satellite (Sentinel-2)</option><option value="aerial">Aerial (SWISSIMAGE)</option></select></label><span class="icectl"><span class="icelbl">Glaciers</span><span class="seg" id="icemode" role="group" aria-label="Show glaciers as colour, outline or hide them"><button data-ice="fill" aria-pressed="true">Colour</button><button data-ice="outline" aria-pressed="false">Outline</button><button data-ice="off" aria-pressed="false">Hide</button></span></span><span class="dp dpmap" id="dpMap"></span>
-        <div class="imgnote" id="imgnote" hidden><button id="imgprev" aria-label="Older image" hidden>◀</button><span id="imgtxt"></span><button id="imgnext" aria-label="Newer image" hidden>▶</button></div></div>
+        <div class="imgnote" id="imgnote" hidden><button id="imgprev" aria-label="Previous (older) image" hidden>◀</button><span id="imgtxt"></span><button id="imgnext" aria-label="Newer image" hidden>▶</button></div></div>
         <div class="zoom">
           <button id="zin" aria-label="Zoom in">+</button>
           <button id="zout" aria-label="Zoom out">−</button>
@@ -245,6 +245,7 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
       </section>
       <section class="panel" id="srcpanel">
         <h2>Where's the freezing line?</h2>
+        <div class="big" id="srcbig"></div>
         <p class="row" id="srcrow"></p>
         <p class="hint" id="srchint"></p>
       </section>
@@ -534,7 +535,8 @@ function drawProfile(c) {    // ice area by height, split by the 0 °C line
 /* ---------- side panels ---------- */
 function renderLine(c) {
   const day = sel.kind === "day", mo = day ? dayDate(sel.k).getUTCMonth() : station.mo, sig = SIGMA_K[mo], g = day ? dayG[sel.k] : station.g;
-  $("srcrow").innerHTML = `<span>${day ? "Mountain stations, daily average" : "Mountain stations (MeteoSwiss)"}</span><span>${fmt(c.z)} m</span>`;
+  $("srcbig").innerHTML = `<span>${fmt(c.z)}</span><small>m</small>`;
+  $("srcrow").innerHTML = `<span>${day ? "Mountain stations, daily average" : "Mountain stations (MeteoSwiss)"}</span>`;
   $("srchint").textContent = day
     ? `Average freezing-line height from ${dayN[sel.k]} mountain stations on ${dayLabel(sel.k)}, cooling ${(g * 1000).toFixed(1)} °C per km. Typically off by about ${fmt(sig / g)} m.`
     : `Real thermometers at ${station.n} mountain stations above 2,000 m, cooling ${(g * 1000).toFixed(1)} °C per km (fitted to the stations). Typically off by about ${fmt(sig / g)} m.`;
@@ -720,8 +722,8 @@ $("icemode").addEventListener("click", e => {
 });
 $("b3d").onclick = () => set3D(!V3.on);
 $("exag").oninput = e => { V3.exag = +e.target.value; $("exagout").textContent = V3.exag + "×"; if (V3.terrain) { placeTerrain(); placePlane(); } };
-$("imgprev").onclick = () => { if (satStep(1)) { updateImageryNote(); schedule(); } };
-$("imgnext").onclick = () => { if (satStep(-1)) { updateImageryNote(); schedule(); } };
+$("imgprev").onclick = () => { if (satStep(-1)) { updateImageryNote(); schedule(); } };
+$("imgnext").onclick = () => { if (satStep(1)) { updateImageryNote(); schedule(); } };
 $("snbtn").onclick = () => { showSnow = !showSnow; $("snbtn").setAttribute("aria-pressed", showSnow); schedule(); };
 $("stbtn").onclick = () => { showStations = !showStations; $("stbtn").setAttribute("aria-pressed", showStations); schedule(); };
 
