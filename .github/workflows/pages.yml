@@ -29,7 +29,7 @@ jobs:
       - name: Collect the static site
         run: |
           mkdir _site
-          cp index.html imagery.js cells.json outlines.json history.json glamos.json snow.json snapshot.json _site/
+          cp index.html imagery.js map3d.js cells.json outlines.json history.json glamos.json snow.json snapshot.json _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

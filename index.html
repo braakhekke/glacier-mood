@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Zero Melt</title>
 <meta name="description" content="Is today a good day for Switzerland's glaciers? See where the freezing line sits over every glacier right now, and every day back to 1993.">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap">
 <style>
 /* Zero Melt look: a trailhead sticker board. Chunky outlined cards with hard offset shadows, snow-sky paper with faint contour lines,
@@ -87,6 +88,10 @@ mark { background: var(--sun); color: #0c2340; padding: 0 0.14em; border-radius:
 .ctx { margin: 16px 0 0; max-width: 540px; }
 .ctx svg { width: 100%; height: auto; display: block; }
 .ctx svg text { font-family: var(--font-body); }
+.seg { display: inline-flex; margin: 6px 0 0; border: 2px solid var(--edge); border-radius: 999px; overflow: hidden; background: var(--panel); }
+.seg button { border: 0; background: transparent; padding: 5px 14px; font: 700 13px var(--font-body); color: var(--ink); cursor: pointer; }
+.seg button + button { border-left: 2px solid var(--edge); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
 .ctx .ctxcap { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-2); }
 .profile { min-width: 0; }
 .profile svg { width: 100%; height: auto; display: block; }
@@ -108,6 +113,12 @@ canvas.drag { cursor: grabbing; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .imgnote { position: absolute; left: 12px; top: 56px; display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-body); background: color-mix(in srgb, var(--panel) 92%, transparent); border: 2px solid var(--edge); border-radius: 999px; padding: 3px 6px 3px 12px; max-width: calc(100% - 70px); }
 .imgnote button { border: 1.5px solid var(--edge); background: var(--panel); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 10px; padding: 0; }
+.view3d { position: absolute; inset: 0; background: var(--map); }
+.mapbox.is3d #cv, .mapbox.is3d .zoom, .mapbox.is3d #stbtn, .mapbox.is3d #snbtn, .mapbox.is3d .imgnote, .mapbox.is3d .tip { display: none; }
+.ctl3d { position: absolute; right: 12px; top: 12px; z-index: 2; display: grid; gap: 4px; width: 130px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 2px solid var(--edge); border-radius: 14px; padding: 8px 12px; font: 700 13px var(--font-body); }
+.ctl3d label { display: flex; justify-content: space-between; }
+.ctl3d input { width: 100%; height: 22px; }
+.note3d { position: absolute; left: 12px; top: 56px; z-index: 2; margin: 0; max-width: calc(100% - 190px); font: 600 12.5px/1.35 var(--font-body); background: color-mix(in srgb, var(--panel) 92%, transparent); border: 2px solid var(--edge); border-radius: 12px; padding: 5px 11px; }
 .tip { position: absolute; pointer-events: none; background: var(--panel); border: 2px solid var(--edge); border-radius: 12px; padding: 8px 11px; font-size: 13px; line-height: 1.4; box-shadow: 3px 3px 0 var(--shadow); z-index: 3; max-width: 260px; }
 .legend { position: absolute; left: 12px; bottom: 12px; background: color-mix(in srgb, var(--panel) 94%, transparent); border: 2px solid var(--edge); border-radius: 14px; padding: 8px 12px; font-size: 13px; font-weight: 500; display: grid; gap: 4px; }
 .legend span { display: flex; align-items: center; gap: 8px; }
@@ -171,7 +182,7 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
   <header class="brand">
     <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="34" cy="13" r="7" fill="var(--sun)" stroke="var(--edge)" stroke-width="2.5"/><path d="M3 42 L19 13 L28 30 L33 22 L45 42 Z" fill="var(--ice)" stroke="var(--edge)" stroke-width="2.5" stroke-linejoin="round"/><path d="M13.5 24 L19 13 L24.5 23.5 L20.5 21.5 L17.5 25.5Z" fill="#fff"/></svg>
     <h1>Zero Melt</h1>
-    <span class="hand">is the ice having a good day?</span>
+    <span class="hand">is the ice having a good time?</span>
   </header>
 
   <section class="verdict" id="verdict" aria-live="polite">
@@ -197,8 +208,9 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
     <div class="leftcol">
       <div class="mapbox" id="mapbox">
         <canvas id="cv" aria-label="Map of Swiss glaciers coloured by whether they sit below the freezing line"></canvas>
+        <div class="view3d" id="view3d" hidden><div class="ctl3d"><label for="exag">Height <output id="exagout" for="exag">1.5×</output></label><input id="exag" type="range" min="1" max="4" step="0.25" value="1.5"></div><p class="note3d" id="note3d"></p></div>
         <div class="loading" id="loading">Counting 1.4 million bits of ice…</div>
-        <div class="mapctl"><button class="stbtn" id="stbtn" aria-pressed="false">Stations</button><button class="stbtn" id="snbtn" aria-pressed="false" hidden>Snow</button><label class="bgpick"><span class="sr">Map style</span><select id="bgsel"><option value="grey">Grey map</option><option value="sat">Satellite (Sentinel-2)</option><option value="aerial">Aerial (SWISSIMAGE)</option></select></label></div>
+        <div class="mapctl"><button class="stbtn" id="stbtn" aria-pressed="false">Stations</button><button class="stbtn" id="snbtn" aria-pressed="false" hidden>Snow</button><button class="stbtn" id="b3d" aria-pressed="false">3D</button><label class="bgpick"><span class="sr">Map style</span><select id="bgsel"><option value="grey">Grey map</option><option value="sat">Satellite (Sentinel-2)</option><option value="aerial">Aerial (SWISSIMAGE)</option></select></label></div>
         <div class="imgnote" id="imgnote" hidden><button id="imgprev" aria-label="Older image" hidden>◀</button><span id="imgtxt"></span><button id="imgnext" aria-label="Newer image" hidden>▶</button></div>
         <div class="zoom">
           <button id="zin" aria-label="Zoom in">+</button>
@@ -256,6 +268,7 @@ th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--li
 </div>
 
 <script src="imagery.js"></script>
+<script src="map3d.js"></script>
 <script>
 const BORDER = [[10.4527,46.8636],[10.4491,46.8316],[10.4455,46.8231],[10.4167,46.7995],[10.4203,46.7843],[10.4275,46.7691],[10.4275,46.7556],[10.4167,46.7438],[10.3987,46.7353],[10.3951,46.7269],[10.3951,46.7015],[10.3843,46.6897],[10.3735,46.6813],[10.3699,46.6728],[10.3771,46.6526],[10.3951,46.6391],[10.4383,46.6357],[10.4599,46.6239],[10.4671,46.6036],[10.4671,46.5783],[10.4563,46.5529],[10.4527,46.5462],[10.4455,46.5377],[10.4275,46.5361],[10.3555,46.5479],[10.3195,46.5462],[10.3051,46.5479],[10.2943,46.5513],[10.2907,46.5563],[10.2763,46.5648],[10.2331,46.5749],[10.2295,46.5867],[10.2367,46.607],[10.2331,46.6188],[10.2187,46.6272],[10.1935,46.6272],[10.0963,46.6087],[10.0819,46.5968],[10.0711,46.5648],[10.0639,46.5563],[10.0315,46.5327],[10.0315,46.504],[10.0279,46.4938],[10.0279,46.4837],[10.0351,46.4719],[10.0423,46.4668],[10.0279,46.4466],[10.0423,46.4331],[10.0711,46.4246],[10.1179,46.4195],[10.1323,46.4145],[10.1395,46.4027],[10.1323,46.3807],[10.1251,46.374],[10.1035,46.3621],[10.0963,46.352],[10.0927,46.3385],[10.0927,46.3284],[10.0963,46.3199],[10.1035,46.3098],[10.1467,46.2811],[10.1575,46.2625],[10.1467,46.2439],[10.1179,46.2304],[10.0747,46.2203],[10.0423,46.2203],[10.0423,46.2422],[10.0315,46.2608],[9.9919,46.2845],[9.9775,46.298],[9.9703,46.3199],[9.9703,46.3402],[9.9631,46.3554],[9.9379,46.3672],[9.9199,46.3706],[9.8983,46.3723],[9.8551,46.3672],[9.7903,46.3436],[9.7687,46.3385],[9.7543,46.3402],[9.7291,46.3503],[9.7219,46.3503],[9.7075,46.3419],[9.7075,46.3115],[9.6931,46.2963],[9.6751,46.2912],[9.5599,46.2929],[9.5347,46.298],[9.5167,46.3081],[9.5023,46.3199],[9.4843,46.3571],[9.4519,46.3706],[9.4447,46.3756],[9.4411,46.3807],[9.4447,46.3959],[9.4375,46.4922],[9.4339,46.4989],[9.4267,46.4972],[9.4123,46.4888],[9.4051,46.482],[9.4015,46.4753],[9.3943,46.4702],[9.3835,46.4668],[9.3763,46.4685],[9.3511,46.4854],[9.3511,46.4972],[9.3295,46.5023],[9.2827,46.4972],[9.2647,46.4854],[9.2467,46.4618],[9.2395,46.4364],[9.2467,46.4229],[9.2611,46.4162],[9.2611,46.379],[9.2755,46.3436],[9.2755,46.3317],[9.2683,46.3098],[9.2395,46.2676],[9.2251,46.2304],[9.2143,46.2203],[9.2035,46.2135],[9.1927,46.2102],[9.1819,46.2034],[9.1747,46.195],[9.1711,46.1831],[9.1639,46.173],[9.0919,46.1376],[9.0703,46.119],[9.0667,46.1055],[9.0703,46.0835],[9.0667,46.0717],[9.0595,46.0616],[9.0271,46.0531],[9.0019,46.0396],[8.9983,46.0278],[9.0163,45.9923],[8.9839,45.9721],[8.9803,45.9687],[8.9803,45.9636],[8.9947,45.9535],[9.0019,45.9366],[9.0091,45.9265],[9.0199,45.9231],[9.0415,45.9197],[9.0523,45.9164],[9.0631,45.8995],[9.0595,45.8826],[9.0343,45.8488],[9.0019,45.8201],[8.9731,45.8252],[8.9407,45.8353],[8.9011,45.8269],[8.9083,45.8539],[8.9155,45.8657],[8.9119,45.8826],[8.9083,45.8961],[8.8795,45.9315],[8.8723,45.9467],[8.8651,45.9535],[8.8579,45.9569],[8.8003,45.9788],[8.7859,45.9822],[8.7679,45.9839],[8.7679,45.9856],[8.7751,45.9906],[8.7895,46.0194],[8.8183,46.043],[8.8327,46.0666],[8.8075,46.0903],[8.7931,46.0937],[8.7463,46.0937],[8.7391,46.0987],[8.7319,46.1072],[8.7283,46.1088],[8.7175,46.1072],[8.6959,46.0953],[8.6779,46.0953],[8.6311,46.1139],[8.6023,46.1224],[8.5375,46.1882],[8.5087,46.2085],[8.4583,46.2254],[8.4367,46.2355],[8.4259,46.2507],[8.4223,46.276],[8.4259,46.3013],[8.4439,46.3537],[8.4475,46.3824],[8.4475,46.4128],[8.4403,46.4347],[8.4295,46.4483],[8.4007,46.4516],[8.3431,46.4432],[8.3179,46.4331],[8.2963,46.4179],[8.2855,46.406],[8.2891,46.401],[8.2963,46.3976],[8.2963,46.3875],[8.2927,46.379],[8.2819,46.3706],[8.2711,46.3638],[8.2423,46.3537],[8.1919,46.3098],[8.1703,46.2997],[8.1271,46.2929],[8.1055,46.2861],[8.0875,46.2726],[8.0767,46.2625],[8.0731,46.2541],[8.0767,46.249],[8.0983,46.2355],[8.1307,46.1967],[8.1307,46.1595],[8.1091,46.1274],[8.0659,46.1004],[8.0371,46.097],[8.0263,46.092],[8.0191,46.0801],[8.0155,46.07],[8.0155,46.0582],[8.0119,46.0295],[8.0083,46.0278],[7.9975,46.0126],[7.9975,46.0109],[7.9867,45.9991],[7.9687,45.9923],[7.8967,45.9822],[7.8823,45.9738],[7.8715,45.9586],[7.8715,45.94],[7.8499,45.94],[7.8463,45.9282],[7.8463,45.9231],[7.8427,45.9197],[7.8319,45.9147],[7.8247,45.9147],[7.8067,45.918],[7.7815,45.918],[7.7311,45.9299],[7.7239,45.9299],[7.7131,45.9265],[7.6951,45.9282],[7.6735,45.9501],[7.6591,45.9603],[7.6447,45.967],[7.5403,45.9839],[7.5259,45.9788],[7.5043,45.9569],[7.4827,45.9552],[7.4539,45.9451],[7.3927,45.9164],[7.3603,45.9079],[7.2883,45.913],[7.2739,45.9096],[7.2451,45.8978],[7.1839,45.8809],[7.1551,45.8758],[7.1227,45.8758],[7.0903,45.8809],[7.0687,45.891],[7.0219,45.9248],[7.0147,45.9332],[7.0039,45.9619],[6.9931,45.9822],[6.9859,45.9923],[6.9139,46.0481],[6.8923,46.0548],[6.8851,46.0531],[6.8707,46.0447],[6.8599,46.0447],[6.8491,46.0531],[6.8527,46.0565],[6.8527,46.0852],[6.8491,46.0852],[6.8671,46.1055],[6.8707,46.1122],[6.8527,46.1224],[6.7735,46.1342],[6.7663,46.1511],[6.7735,46.1865],[6.7915,46.222],[6.8275,46.2693],[6.8059,46.2963],[6.7699,46.3233],[6.7519,46.3452],[6.7555,46.3571],[6.7807,46.379],[6.7879,46.3959],[6.7879,46.4145],[6.7771,46.4246],[6.7627,46.4297],[6.6151,46.4567],[6.5467,46.4567],[6.4819,46.4483],[6.3991,46.4077],[6.3667,46.4027],[6.3307,46.401],[6.3019,46.3942],[6.2695,46.3756],[6.2191,46.3284],[6.2155,46.3149],[6.2263,46.2878],[6.2263,46.2845],[6.2371,46.2676],[6.2407,46.2642],[6.2515,46.2591],[6.2695,46.2659],[6.2767,46.2625],[6.2803,46.2406],[6.2551,46.2203],[6.1903,46.1916],[6.1399,46.1494],[6.1075,46.1392],[6.0751,46.1494],[6.0283,46.1477],[5.9815,46.1409],[5.9599,46.1308],[5.9707,46.1528],[5.9815,46.1629],[5.9815,46.1713],[5.9635,46.1865],[5.9563,46.2],[5.9599,46.2119],[5.9815,46.222],[6.0463,46.2439],[6.0571,46.2422],[6.0607,46.2406],[6.0895,46.2456],[6.0931,46.2524],[6.0931,46.2726],[6.1003,46.3013],[6.1039,46.3098],[6.1363,46.3588],[6.1363,46.3706],[6.1219,46.3858],[6.1075,46.3959],[6.0607,46.4179],[6.0535,46.4195],[6.0643,46.4263],[6.0679,46.4331],[6.0643,46.4398],[6.0643,46.4516],[6.0607,46.455],[6.0607,46.4651],[6.0643,46.4719],[6.0751,46.4803],[6.1111,46.5209],[6.1471,46.5513],[6.1219,46.5698],[6.1183,46.5833],[6.1327,46.5952],[6.2659,46.6796],[6.3379,46.7066],[6.3487,46.7134],[6.3739,46.7336],[6.4171,46.7505],[6.4279,46.7606],[6.4315,46.7691],[6.4315,46.786],[6.4243,46.791],[6.4171,46.8029],[6.4171,46.8062],[6.4351,46.84],[6.4423,46.8484],[6.4423,46.8518],[6.4459,46.8569],[6.4495,46.8721],[6.4459,46.8822],[6.4315,46.9008],[6.4279,46.9092],[6.4423,46.9447],[6.4927,46.9633],[6.5971,46.9869],[6.6655,47.0207],[6.6871,47.0443],[6.6763,47.0629],[6.6979,47.0848],[6.7231,47.0916],[6.7267,47.0967],[6.7447,47.1034],[6.7447,47.1203],[6.7735,47.1287],[6.8419,47.1693],[6.8599,47.1912],[6.8887,47.2115],[6.9571,47.2453],[6.9535,47.2706],[6.9571,47.2909],[6.9787,47.3044],[6.9859,47.3044],[6.9931,47.306],[7.0075,47.3196],[7.0255,47.3246],[7.0363,47.3297],[7.0435,47.3398],[7.0327,47.35],[7.0039,47.3685],[6.9859,47.3618],[6.8671,47.3533],[6.8707,47.3668],[6.8995,47.3955],[6.9247,47.4057],[6.9247,47.4242],[6.9535,47.4293],[6.9679,47.4344],[6.9823,47.4445],[6.9895,47.453],[6.9859,47.4648],[6.9751,47.4783],[6.9751,47.4884],[6.9931,47.4935],[7.0003,47.4969],[7.0111,47.4985],[7.0291,47.4935],[7.0543,47.4901],[7.1047,47.4969],[7.1263,47.4935],[7.1407,47.4884],[7.1551,47.4867],[7.1803,47.4884],[7.1623,47.4597],[7.1695,47.4428],[7.1911,47.4344],[7.2199,47.4293],[7.2307,47.4192],[7.2379,47.4175],[7.2451,47.4175],[7.2811,47.4293],[7.3099,47.4327],[7.3783,47.431],[7.3891,47.4327],[7.4071,47.4378],[7.4215,47.4513],[7.4287,47.4648],[7.4287,47.4715],[7.4215,47.4749],[7.4179,47.4783],[7.4143,47.4833],[7.4143,47.4901],[7.4251,47.4918],[7.4431,47.4884],[7.4539,47.4833],[7.4683,47.4817],[7.4863,47.4935],[7.4863,47.5002],[7.4755,47.5121],[7.4755,47.5154],[7.4827,47.5171],[7.4935,47.5154],[7.5007,47.5171],[7.5043,47.5222],[7.5043,47.5323],[7.5007,47.5323],[7.4827,47.5425],[7.5223,47.5627],[7.5259,47.5661],[7.5511,47.5762],[7.6375,47.5948],[7.6591,47.5965],[7.6483,47.5712],[7.6375,47.5644],[7.6087,47.5644],[7.6627,47.5458],[7.6843,47.5441],[7.7671,47.556],[7.7851,47.5627],[7.8031,47.5762],[7.8211,47.5948],[7.8355,47.5897],[7.8967,47.588],[7.9039,47.583],[7.9111,47.5644],[7.9111,47.561],[8.0407,47.561],[8.0875,47.5678],[8.0983,47.5712],[8.1055,47.5813],[8.1127,47.588],[8.1451,47.5999],[8.1631,47.6032],[8.1703,47.6083],[8.1739,47.6134],[8.1775,47.6151],[8.2315,47.6218],[8.2495,47.6218],[8.2891,47.6151],[8.2927,47.6117],[8.3071,47.5914],[8.3179,47.588],[8.3539,47.5813],[8.4223,47.5813],[8.4475,47.5847],[8.4619,47.6066],[8.4907,47.6201],[8.5231,47.6218],[8.5375,47.6117],[8.5483,47.5982],[8.5519,47.5965],[8.5591,47.5897],[8.5735,47.5931],[8.5771,47.5948],[8.5807,47.5999],[8.5807,47.6151],[8.5843,47.6218],[8.5807,47.6252],[8.5807,47.6286],[8.5771,47.6336],[8.5807,47.6387],[8.5843,47.6404],[8.5879,47.6421],[8.5951,47.6421],[8.5951,47.6353],[8.6023,47.6319],[8.6059,47.6556],[8.5951,47.659],[8.5699,47.6623],[8.5195,47.6573],[8.4763,47.6404],[8.4583,47.6404],[8.4367,47.6471],[8.4079,47.6623],[8.3899,47.6657],[8.3971,47.6758],[8.3899,47.6927],[8.3935,47.6995],[8.4007,47.7079],[8.4259,47.7164],[8.4367,47.7231],[8.4439,47.7434],[8.4511,47.7501],[8.4619,47.7637],[8.4727,47.767],[8.4835,47.767],[8.5375,47.7738],[8.5519,47.7789],[8.5411,47.7957],[8.5591,47.8008],[8.5843,47.8008],[8.6023,47.794],[8.6023,47.7873],[8.6059,47.7738],[8.6059,47.762],[8.6167,47.7569],[8.6311,47.762],[8.6347,47.7839],[8.6455,47.7907],[8.6563,47.7873],[8.6671,47.7789],[8.6743,47.767],[8.6815,47.7586],[8.6923,47.7569],[8.7031,47.7586],[8.7139,47.7569],[8.7211,47.7468],[8.7031,47.7299],[8.6995,47.7231],[8.7031,47.7147],[8.7139,47.7079],[8.7139,47.7012],[8.7175,47.6944],[8.7715,47.6944],[8.7607,47.7012],[8.7715,47.7214],[8.7967,47.7198],[8.8291,47.7079],[8.8543,47.691],[8.8363,47.6877],[8.8363,47.6809],[8.8507,47.6708],[8.8543,47.6708],[8.8831,47.6556],[8.9047,47.6522],[8.9443,47.6539],[8.9803,47.6623],[8.9983,47.6742],[9.0163,47.6792],[9.1279,47.6708],[9.1819,47.6708],[9.1963,47.6556],[9.2359,47.6556],[9.2719,47.6505],[9.5491,47.534],[9.5527,47.5171],[9.5563,47.5104],[9.5851,47.48],[9.6211,47.4698],[9.6499,47.4513],[9.6499,47.4091],[9.6391,47.3939],[9.5995,47.3618],[9.5959,47.3516],[9.5923,47.3348],[9.5887,47.328],[9.5527,47.2993],[9.5203,47.2621],[9.5059,47.2436],[9.4879,47.2098],[9.4843,47.176],[9.4915,47.1591],[9.5023,47.1456],[9.5131,47.1287],[9.5131,47.1085],[9.5023,47.095],[9.4771,47.073],[9.4771,47.0646],[9.4987,47.0595],[9.5599,47.0528],[9.5815,47.0561],[9.5995,47.0528],[9.6535,47.0578],[9.6679,47.0561],[9.8587,47.0156],[9.8551,47.0038],[9.8659,47.0021],[9.8695,46.9987],[9.8695,46.9937],[9.8659,46.9835],[9.8623,46.9599],[9.8623,46.9396],[9.8767,46.9278],[9.8983,46.9143],[10.0063,46.8907],[10.0459,46.8653],[10.0675,46.8569],[10.1107,46.8468],[10.1323,46.8468],[10.1575,46.8518],[10.2007,46.867],[10.2115,46.8772],[10.2151,46.8839],[10.2151,46.8923],[10.2187,46.9059],[10.2367,46.9227],[10.2511,46.9261],[10.2691,46.9211],[10.2943,46.9227],[10.2979,46.9413],[10.3123,46.965],[10.3375,46.9835],[10.3663,46.9954],[10.3735,46.997],[10.3843,46.9937],[10.3951,46.9852],[10.4167,46.9616],[10.4491,46.9447],[10.4599,46.9363],[10.4635,46.9194],[10.4527,46.8856],[10.4527,46.8636]];
 const CITIES = [["Zürich",47.3769,8.5417],["Bern",46.948,7.4474],["Genève",46.2044,6.1432],["Sion",46.2293,7.3589],["Chur",46.8499,9.5329],["Lugano",46.0037,8.9511],["Basel",47.5596,7.5886]];
@@ -413,7 +426,7 @@ function lineAt(f, i) { const k = li0[i], a = lfx[i], b = lfy[i]; return (f[k] *
 function applySelection() {
   updateSnowButton();
   if (sel.kind === "day") Zc.fill(dayZ[sel.k]); else { const f = station.field; for (let i = 0; i < N; i++) Zc[i] = lineAt(f, i); }
-  recount(); renderAll(); updateImageryNote(); schedule();
+  recount(); renderAll(); updateImageryNote(); schedule(); schedule3D();
 }
 function current() {   // everything the banner needs for the chosen state
   let zsum = 0, n = 0; for (let i = 0; i < N; i += 7) { zsum += Zc[i]; n++; }
@@ -433,48 +446,71 @@ function renderAll() {
   $("lead").innerHTML = `of Swiss glacier ice is below the freezing line, about <b>${fmt(c.km)}</b> of ${fmt(total)} km².` + (` Give or take ${fmt(c.sig)} m on the line: ${hi < 0.0005 ? "still none of it" : lo > 0.9995 ? "still all of it" : `${pf(lo)}–${pf(hi)}%`}.`);
   const when = sel.kind === "day" ? `daily average of ${dayLabel(sel.k)}` : `${station.name}, ${new Date(obsNow.time).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`;
   $("meta").innerHTML = `Freezing line over the glaciers: <b>${fmt(c.z)} m</b> on average (${when})` + (offset ? `, pushed up ${fmt(offset)} m.` : ".");
-  renderVerdict(c); renderLine(c); drawProfile(c); markHeat();
+  const ce = renderVerdict(c); renderLine(c); drawProfile(ce); markHeat();
 }
 
 /* ---------- verdict banner ---------- */
-function sameDateVals(kref) {   // the freezing-line height on this very date (month and day) in every other year since 1993
+let ctxMode = "day", lastCtx = null;   // what the chart compares: one day, the last 7 days, or the last 30 days
+const CTX = { day: { n: 1, name: "Day", unit: "that day" }, week: { n: 7, name: "Week", unit: "the 7 days up to" }, month: { n: 30, name: "Month", unit: "the 30 days up to" } };
+function periodMean(k, n) {   // average freezing line over the n days ending at day k (needs most of the days)
+  let sum = 0, c = 0; for (let i = k - n + 1; i <= k; i++) if (i >= 0 && i < ND && !Number.isNaN(dayZ[i])) { sum += dayZ[i]; c++; }
+  return c >= Math.ceil(n * 0.7) ? Math.max(sum / c, 0) : NaN;
+}
+function sameDateVals(kref, n) {   // the same period (ending on this month and day) in every other year since 1993
   const d0 = dayDate(kref), yr = d0.getUTCFullYear(), out = [];
   for (let y = 1993; y <= dayDate(ND - 1).getUTCFullYear(); y++) {
     if (y === yr) continue;
     const k = dayIndex(new Date(Date.UTC(y, d0.getUTCMonth(), d0.getUTCDate())));
-    if (k >= 0 && k < ND && !Number.isNaN(dayZ[k]) && dayDate(k).getUTCDate() === d0.getUTCDate()) out.push({ y, z: Math.max(dayZ[k], 0) });
+    if (k < 0 || k >= ND || dayDate(k).getUTCDate() !== d0.getUTCDate()) continue;
+    const z = periodMean(k, n); if (!Number.isNaN(z)) out.push({ y, z });
   }
   return out;
 }
 function contextChart(kref, past) {
-  const z = Math.max(dayZ[kref], 0), pts = Number.isNaN(dayZ[kref]) ? [] : sameDateVals(kref); if (pts.length < 10) return "";
-  const sorted = pts.map(p => p.z).sort((p, q) => p - q), med = sorted[sorted.length >> 1], rank = pts.filter(p => p.z < z).length / pts.length;
+  lastCtx = { kref, past }; const m = CTX[ctxMode], z = periodMean(kref, m.n), pts = Number.isNaN(z) ? [] : sameDateVals(kref, m.n); if (pts.length < 10) return "";
+  const sorted = pts.map(p => p.z).sort((p, q) => p - q), med = sorted[sorted.length >> 1];
   const lo = Math.max(0, Math.floor((Math.min(sorted[0], z) - 100) / 100) * 100), hi = Math.ceil((Math.max(sorted[sorted.length - 1], z) + 100) / 100) * 100;
   const w = 540, pl = 10, pr = 10, r = 6, X = e => pl + (w - pl - pr) * (e - lo) / (hi - lo);
   const last = []; let maxLevel = 0;   // stack dots that would overlap
   const dots = pts.slice().sort((a, b) => a.z - b.z).map(p => { const x = X(p.z); let l = 0; while (last[l] !== undefined && x - last[l] < 2 * r + 1) l++; last[l] = x; maxLevel = Math.max(maxLevel, l); return { ...p, x, l }; });
   const base = 62 + (maxLevel + 1) * (2 * r + 1), top = base - (maxLevel + 1) * (2 * r + 1) - 6, h = base + 44;
-  let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${past ? "That day" : "Yesterday"} against the same date in every other year since 1993">`;
+  const who = ctxMode === "day" ? (past ? dayLabel(kref).replace(/ \d{4}$/, "") + " " + dayDate(kref).getUTCFullYear() : "yesterday") : ctxMode === "week" ? "last 7 days" : "last 30 days";
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${who} against the same period in every other year since 1993">`;
   dots.forEach(p => s += `<circle cx="${p.x}" cy="${base - r - 1 - p.l * (2 * r + 1)}" r="${r}" fill="var(--ice-soft)" stroke="var(--edge)" stroke-width="1.5"><title>${p.y}: ${fmt(p.z)} m</title></circle>`);
   s += `<line x1="${pl}" x2="${w - pr}" y1="${base}" y2="${base}" stroke="var(--edge)" stroke-width="2"/>`;
   s += `<line x1="${X(med)}" x2="${X(med)}" y1="${top}" y2="${base + 8}" stroke="var(--edge)" stroke-width="2" stroke-dasharray="4 3"/><text x="${X(med)}" y="${base + 24}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">typical ${fmt(med)} m</text>`;
   const end = X(z) > w * 0.62, ty = Math.max(top - 18, 14);
-  s += `<line x1="${X(z)}" x2="${X(z)}" y1="${ty}" y2="${base}" stroke="var(--tier)" stroke-width="4"/><circle cx="${X(z)}" cy="${ty}" r="8" fill="var(--tier)" stroke="var(--edge)" stroke-width="2.5"/><text x="${X(z) + (end ? -13 : 13)}" y="${ty + 5}" text-anchor="${end ? "end" : "start"}" font-size="14" font-weight="800" fill="var(--ink)">${past ? dayLabel(kref).replace(/ \d{4}$/, "") + " " + dayDate(kref).getUTCFullYear() : "yesterday"} · ${fmt(z)} m</text>`;
+  s += `<line x1="${X(z)}" x2="${X(z)}" y1="${ty}" y2="${base}" stroke="var(--tier)" stroke-width="4"/><circle cx="${X(z)}" cy="${ty}" r="8" fill="var(--tier)" stroke="var(--edge)" stroke-width="2.5"/><text x="${X(z) + (end ? -13 : 13)}" y="${ty + 5}" text-anchor="${end ? "end" : "start"}" font-size="14" font-weight="800" fill="var(--ink)">${who} · ${fmt(z)} m</text>`;
   s += `<text x="${pl}" y="${h - 3}" font-size="11" fill="var(--ink-2)">${fmt(lo)} m</text><text x="${w - pr}" y="${h - 3}" text-anchor="end" font-size="11" fill="var(--ink-2)">${fmt(hi)} m</text></svg>`;
+  const seg = `<div class="seg" role="group" aria-label="Compare by day, week or month">${Object.entries(CTX).map(([k, v]) => `<button data-m="${k}" aria-pressed="${k === ctxMode}">${v.name}</button>`).join("")}</div>`;
+  const pct = (z - med) / med * 100, rel = Math.abs(pct) < 1 ? "about the same as" : `${Math.round(Math.abs(pct))}% ${pct > 0 ? "higher" : "lower"} than`;
   const md = dayDate(kref).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" });
-  return s + `<p class="ctxcap">Each dot is ${md} in another year since 1993, and where the freezing line sat that day. ${past ? "This day" : "Yesterday"} was higher than ${Math.round(rank * 100)}% of them, ${fmt(Math.abs(z - med))} m ${z >= med ? "above" : "below"} the typical ${fmt(med)} m.</p>`;
+  const what = ctxMode === "day" ? `Each dot is ${md} in another year since 1993` : `Each dot is the average of ${m.unit} ${md} in another year since 1993`;
+  return s + seg + `<p class="ctxcap">${what}. ${past ? "This" : "Yesterday's"} freezing line is <b>${rel} typical</b> (${fmt(med)} m)${Math.abs(pct) < 1 ? "" : `, ${z > med ? "+" : "−"}${fmt(Math.abs(z - med))} m`}.</p>`;
 }
+function periodStats(kref, n) {   // average freezing line and average share of ice under it over the n days up to kref
+  let zs = 0, ps = 0, c = 0;
+  for (let i = kref - n + 1; i <= kref; i++) if (i >= 0 && i < ND && !Number.isNaN(dayZ[i])) { zs += dayZ[i]; ps += dayShare[i]; c++; }
+  return c >= Math.ceil(n * 0.7) ? { z: Math.max(zs / c, 0), p: ps / c, km: ps / c * total } : null;
+}
+const PERIOD_FLAVOUR = ["The glaciers could chill.", "Only the lowest tongues got wet.", "The lower glaciers sweated while the high ones held on.", "A rough stretch for the ice.", "A rough stretch: even the high snowfields were exposed."];
 function renderVerdict(c) {
-  const p = c.p * 100, t = TIERS.find(t => p < t.max) || TIERS[4], ti = TIERS.indexOf(t);
+  const past = sel.kind === "day", kref = past ? sel.k : ND - 1;
+  let e = c, unit = "day"; const per = ctxMode === "day" ? null : periodStats(kref, CTX[ctxMode].n);
+  if (per) { e = { ...c, z: per.z, p: per.p, km: per.km }; unit = ctxMode; }
+  const p = e.p * 100, t = TIERS.find(t => p < t.max) || TIERS[4], ti = TIERS.indexOf(t);
   const root = $("verdict"); root.style.setProperty("--tier", t.col); root.style.setProperty("--on", t.on);
-  const past = sel.kind === "day";
-  $("vtitle").innerHTML = (past ? `${dayLabel(sel.k)}: ${t.title.charAt(0).toLowerCase() + t.title.slice(1)}` : t.title).replace("glaciers", "<mark>glaciers</mark>");
-  $("vmsg").textContent = t.msg(c.z, p, c.km) + (offset ? ` (If the line were ${fmt(offset)} m higher.)` : "");
-  $("vctx").innerHTML = contextChart(past ? sel.k : ND - 1, past);
+  const title = t.title.replace(" day ", ` ${unit} `), upTo = dayLabel(kref).replace(/ \d{4}$/, "") + " " + dayDate(kref).getUTCFullYear();
+  const lead = unit === "day" ? (past ? `${dayLabel(sel.k)}: ` : "") : past ? `${CTX[unit].name} to ${upTo}: ` : `Last ${CTX[unit].n} days: `;
+  $("vtitle").innerHTML = (lead ? lead + title.charAt(0).toLowerCase() + title.slice(1) : title).replace("glaciers", "<mark>glaciers</mark>");
+  $("vmsg").textContent = unit === "day" ? t.msg(e.z, p, e.km) + (offset ? ` (If the line were ${fmt(offset)} m higher.)` : "")
+    : `The freezing line averaged ${fmt(e.z)} m over the ${past ? "" : "last "}${CTX[unit].n} days${past ? " up to " + dayLabel(kref).replace(/ \d{4}$/, "") : ""}, with ${pf(e.p)}% of the ice (about ${fmt(e.km)} km²) below it on an average day. ${PERIOD_FLAVOUR[ti]}`;
+  $("vctx").innerHTML = contextChart(kref, past);
   const m = $("vmeter"); m.innerHTML = TIERS.map((x, i) => `<span class="${i === ti ? "on" : ""}" style="--c:${x.col};--on:${x.on}">${x.tag.replace(" day", "")}</span>`).join("");
   const lv = $("vlive"); lv.className = "live" + (past || liveOk ? "" : " off");
   lv.querySelector("span").textContent = past ? "Time travel: daily averages from the mountain stations." : liveOk ? `Live from the mountain stations, ${new Date(obsNow.time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC. Refreshes every 10 minutes.` : "Offline snapshot, live data could not be reached.";
   $("vnow").disabled = !past; const di = $("vdate"); di.value = past ? dayDate(sel.k).toISOString().slice(0, 10) : todayStr();
+  return e;
 }
 function drawProfile(c) {    // ice area by height, split by the 0 °C line
   const lo = 1000, hi = 4600, bw = 100, bands = (hi - lo) / bw, w = 280, h = 230, pl = 44, pr = 6, pt = 6, pb = 10, ph = h - pt - pb;
@@ -618,6 +654,7 @@ function drawCharts() {
 function enterDay(k) { sel = { kind: "day", k }; }
 function selectDay(k) { enterDay(k); applySelection(); window.scrollTo({ top: 0, behavior: "smooth" }); }
 function selectNow() { sel = { kind: "now" }; applySelection(); }
+$("vctx").addEventListener("click", e => { const b = e.target.closest("[data-m]"); if (!b || !lastCtx) return; ctxMode = b.dataset.m; renderAll(); });
 $("vnow").onclick = selectNow;
 $("vdate").addEventListener("change", e => {
   if (!e.target.value) return; const d = new Date(e.target.value + "T00:00:00Z"), k = dayIndex(d);
@@ -625,20 +662,22 @@ $("vdate").addEventListener("change", e => {
   if (k < 0 || k >= ND || Number.isNaN(dayZ[k])) { renderVerdict(current()); return; }
   enterDay(k); applySelection();
 });
-$("bgsel").onchange = e => { BG.mode = e.target.value; updateImageryNote(); schedule(); };
+$("bgsel").onchange = e => { BG.mode = e.target.value; updateImageryNote(); schedule(); schedule3D(); };
+$("b3d").onclick = () => set3D(!V3.on);
+$("exag").oninput = e => { V3.exag = +e.target.value; $("exagout").textContent = V3.exag + "×"; if (V3.terrain) { placeTerrain(); placePlane(); } };
 $("imgprev").onclick = () => { if (satStep(1)) { updateImageryNote(); schedule(); } };
 $("imgnext").onclick = () => { if (satStep(-1)) { updateImageryNote(); schedule(); } };
 $("snbtn").onclick = () => { showSnow = !showSnow; $("snbtn").setAttribute("aria-pressed", showSnow); schedule(); };
 $("stbtn").onclick = () => { showStations = !showStations; $("stbtn").setAttribute("aria-pressed", showStations); schedule(); };
 const off = $("off");
-off.addEventListener("input", () => { offset = +off.value; $("offout").textContent = "+" + fmt(offset) + " m"; $("reset").disabled = offset === 0; recount(); renderAll(); schedule(); });
+off.addEventListener("input", () => { offset = +off.value; $("offout").textContent = "+" + fmt(offset) + " m"; $("reset").disabled = offset === 0; recount(); renderAll(); schedule(); schedule3D(); });
 $("reset").onclick = () => { off.value = 0; off.dispatchEvent(new Event("input")); };
 
 /* ---------- map ---------- */
 function fit() { const minX = 5.9, maxX = 10.55, minY = -mercY(47.85), maxY = -mercY(45.75); view.s = Math.min(W / (maxX - minX), H / (maxY - minY)); view.ox = (W - (maxX - minX) * view.s) / 2 - minX * view.s; view.oy = (H - (maxY - minY) * view.s) / 2 - minY * view.s; }
 function resize() {
   const r = cv.getBoundingClientRect(); dpr = window.devicePixelRatio || 1; const first = !W; W = r.width; H = r.height;
-  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); resize3D();
   layer = document.createElement("canvas"); layer.width = cv.width; layer.height = cv.height; lctx = layer.getContext("2d"); limg = lctx.createImageData(layer.width, layer.height); lbuf = new Uint32Array(limg.data.buffer);
   if (first) fit(); schedule();
 }
@@ -683,7 +722,7 @@ function drawOutlines() {
   ctx.lineWidth = 1; ctx.lineJoin = "round"; ctx.strokeStyle = colors.ink; ctx.globalAlpha = 0.75; ctx.stroke(); ctx.globalAlpha = 1;
 }
 function draw() {
-  raf = 0; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = colors.map; ctx.fillRect(0, 0, W, H);
+  raf = 0; if (V3.on) return; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = colors.map; ctx.fillRect(0, 0, W, H);
   const { s, ox, oy } = view; ctx.beginPath();
   BORDERW.forEach(([lo, la], i) => { const x = lo * s + ox, y = la * s + oy; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath();
   ctx.fillStyle = colors.panel; ctx.fill(); paintBackground(ctx, view, W, H, dpr, { onLoad: schedule, dark: colors.isDark, targetMs: targetMs() }); if (BG.mode === "sat") satEnsure(targetMs(), view, W, H, dpr, () => { updateImageryNote(); schedule(); }); ctx.strokeStyle = colors.border; ctx.lineWidth = 1.5; ctx.stroke();
