@@ -257,6 +257,7 @@ function readColors() {
 }
 
 /* ---------- helpers: dates, fits ---------- */
+const todayStr = () => new Date(obsNow ? obsNow.time : Date.now()).toISOString().slice(0, 10);
 const dayDate = k => new Date(START + k * DAY);
 const dayIndex = d => Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - START) / DAY);
 const dayLabel = (k, long) => dayDate(k).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", weekday: long ? "short" : undefined, timeZone: "UTC" });
@@ -467,7 +468,7 @@ function renderVerdict(c) {
   const m = $("vmeter"); m.innerHTML = TIERS.map((x, i) => `<span class="${i === ti ? "on" : ""}" style="--c:color-mix(in srgb, var(--melt) ${x.c}%, var(--ice))">${x.tag.replace(" day", "")}</span>`).join("");
   const lv = $("vlive"); lv.className = "live" + (past || liveOk ? "" : " off");
   lv.querySelector("span").textContent = past ? "Time travel: station daily means from MeteoSwiss." : liveOk ? `Live from MeteoSwiss, ${new Date(obsNow.time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC. Refreshes every 10 minutes.` : "Offline snapshot, live data could not be reached.";
-  $("vnow").disabled = !past; const di = $("vdate"); di.value = past ? dayDate(sel.k).toISOString().slice(0, 10) : "";
+  $("vnow").disabled = !past; const di = $("vdate"); di.value = past ? dayDate(sel.k).toISOString().slice(0, 10) : todayStr();
 }
 function drawProfile(c) {    // ice area by height, split by the 0 °C line
   const lo = 1000, hi = 4600, bw = 100, bands = (hi - lo) / bw, w = 280, h = 230, pl = 44, pr = 6, pt = 6, pb = 10, ph = h - pt - pb;
@@ -636,6 +637,7 @@ function selectNow() { sel = { kind: "now" }; applySelection(); }
 $("vnow").onclick = selectNow;
 $("vdate").addEventListener("change", e => {
   if (!e.target.value) return; const d = new Date(e.target.value + "T00:00:00Z"), k = dayIndex(d);
+  if (e.target.value === todayStr()) { if (sel.kind === "day") selectNow(); return; }
   if (k < 0 || k >= ND || Number.isNaN(dayZ[k])) { renderVerdict(current()); return; }
   enterDay(k); applySelection();
 });
@@ -750,7 +752,7 @@ async function start() {
   await loadHistory(); await loadObs(); buildStationSource();
   D = await cellsP; await decodeCells();
   dayShare = new Float32Array(ND); for (let k = 0; k < ND; k++) dayShare[k] = shareAt(dayZ[k]);
-  const dd = $("vdate"); dd.min = dayDate(0).toISOString().slice(0, 10); dd.max = dayDate(ND - 1).toISOString().slice(0, 10);
+  const dd = $("vdate"); dd.min = dayDate(0).toISOString().slice(0, 10); dd.max = todayStr();
   $("loading").hidden = true; applySelection(); drawHeat(); drawCharts();
   setInterval(refreshLive, 600000);
 }
